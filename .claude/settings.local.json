@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__code-context-provider-mcp__get_code_context",
+      "mcp__cloudscraper-mcp__scrape_url",
+      "WebFetch(domain:github.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

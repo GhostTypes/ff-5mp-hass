@@ -1,0 +1,61 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "FlashForge Printer Setup",
+        "description": "Choose how to configure your FlashForge printer",
+        "data": {
+          "discovery_mode": "Configuration Mode"
+        }
+      },
+      "discovery": {
+        "title": "Discovering FlashForge Printers",
+        "description": "Searching for FlashForge printers on your network..."
+      },
+      "select_printer": {
+        "title": "Select Printer",
+        "description": "Multiple printers found. Select the printer to configure.",
+        "data": {
+          "printer": "Printer"
+        }
+      },
+      "credentials": {
+        "title": "Enter Check Code",
+        "description": "Enter the check code for {name} at {ip} (Serial: {serial}). The check code can be found on the printer's display under LAN mode settings.",
+        "data": {
+          "check_code": "Check Code"
+        }
+      },
+      "manual": {
+        "title": "Manual Configuration",
+        "description": "Enter your FlashForge printer details manually",
+        "data": {
+          "name": "Printer Name",
+          "ip_address": "IP Address",
+          "serial_number": "Serial Number",
+          "check_code": "Check Code"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the printer. Please check the IP address and credentials.",
+      "no_printers_found": "No FlashForge printers found on the network. Please use manual configuration.",
+      "discovery_failed": "Failed to discover printers. Please use manual configuration.",
+      "unknown": "An unexpected error occurred. Please try again."
+    },
+    "abort": {
+      "already_configured": "This printer is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "FlashForge Options",
+        "description": "Configure options for your FlashForge printer",
+        "data": {
+          "scan_interval": "Update Interval (seconds)"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "domain": "flashforge",
+  "name": "FlashForge 3D Printer",
+  "codeowners": ["@cope"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/cope/ff-5mp-hass",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/cope/ff-5mp-hass/issues",
+  "requirements": ["flashforge-python-api>=1.0.0"],
+  "version": "1.0.0"
+}
