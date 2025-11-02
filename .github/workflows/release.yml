@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          # Extract the section for this version from CHANGELOG.md
+          awk "/## \[${VERSION}\]/,/## \[/{if(/## \[${VERSION}\]/)next;if(/## \[/)exit;print}" CHANGELOG.md > release_notes.md
+
+          # Add installation instructions at the end
+          cat >> release_notes.md << 'EOF'
+
+          ---
+
+          ## 📦 Installation
+
+          ### Via HACS (Recommended)
+          1. Open HACS → Integrations
+          2. Click ⋮ → Custom repositories
+          3. Add: `https://github.com/GhostTypes/ff-5mp-hass`
+          4. Category: Integration
+          5. Search "FlashForge" and install
+
+          ### Manual Installation
+          1. Download `Source code (zip)` below
+          2. Extract `custom_components/flashforge/` folder
+          3. Copy to your Home Assistant `config/custom_components/` directory
+          4. Restart Home Assistant
+
+          **Full Changelog**: https://github.com/GhostTypes/ff-5mp-hass/blob/main/CHANGELOG.md
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ steps.get_version.outputs.VERSION }}"
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
