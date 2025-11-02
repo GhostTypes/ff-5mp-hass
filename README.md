@@ -288,47 +288,17 @@ entities:
 
 For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes.
 
-## Development
-
-### Architecture
-
-This integration uses:
-- **[flashforge-python-api](https://github.com/GhostTypes/ff-5mp-api-py)**: HTTP API client library
-- **DataUpdateCoordinator**: Efficient polling with configurable intervals
-- **HTTP API**: Port 8898 for printer control and status
-- **Camera Stream**: Port 8080 for MJPEG video feed
-- **UDP Discovery**: Ports 48899 (broadcast) and 18007 (listen)
-
-### Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly with a real printer
-5. Submit a pull request
-
 ### Related Projects
 
 - **Python API Library**: [ff-5mp-api-py](https://github.com/GhostTypes/ff-5mp-api-py)
-- **Reference Implementation**: [hass-flashforge-adventurer-5](https://github.com/kruzhkov/hass-flashforge-adventurer-5)
+- **TypeScript API Library**: [ff-5mp-api-ts](https://github.com/GhostTypes/ff-5mp-api-ts)
+- **Cross-Platform Monitoring & Control**: [FlashForgeUI-Electron](https://github.com/Parallel-7/FlashForgeUI-Electron)
 
+- 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Credits
-
-- **Author**: [GhostTypes](https://github.com/GhostTypes)
-- **Python API**: Built on [flashforge-python-api](https://pypi.org/project/flashforge-python-api/)
-- **Inspiration**: TCP implementation by [kruzhkov](https://github.com/kruzhkov)
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/GhostTypes/ff-5mp-hass/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/GhostTypes/ff-5mp-hass/discussions)
-- **Documentation**: [API Library Docs](https://github.com/GhostTypes/ff-5mp-api-py#readme)
 
 ---
 
