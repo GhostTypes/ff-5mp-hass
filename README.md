@@ -1,313 +1,335 @@
-# FlashForge 3D Printer - Home Assistant Integration
+# FlashForge 3D Printer Integration for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/release/GhostTypes/ff-5mp-hass.svg)](https://github.com/GhostTypes/ff-5mp-hass/releases)
+[![License](https://img.shields.io/github/license/GhostTypes/ff-5mp-hass.svg)](LICENSE)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1.0+-blue.svg)](https://www.home-assistant.io/)
 
-A Home Assistant custom integration for FlashForge 3D Printers using the HTTP API. This integration provides comprehensive monitoring and control of your FlashForge printer directly from Home Assistant.
+A modern Home Assistant custom integration for FlashForge 3D printers using the HTTP API for reliable, real-time monitoring and control.
 
 ## Features
 
-- **Automatic Discovery**: Automatically discover FlashForge printers on your network via UDP broadcast
-- **Manual Configuration**: Supports manual IP entry for custom network setups
-- **HTTP API Only**: Uses the modern HTTP API (port 8898) for reliable communication
-- **Comprehensive Monitoring**:
-  - Real-time temperature monitoring (nozzle and bed)
-  - Print progress tracking
-  - Layer information
-  - Time estimates (elapsed and remaining)
-  - Machine status and move mode
-  - Current file information
+### 🎯 Comprehensive Monitoring
+- **15 Sensors**: Real-time temperature monitoring, print progress, filament tracking, and more
+- **4 Binary Sensors**: Printing status, connectivity, error detection, pause state
+- **Live Camera Feed**: MJPEG stream from printer camera (model-dependent)
 
-- **Control Capabilities**:
-  - LED control (if supported by printer model)
-  - Filtration control (if supported by printer model)
-  - Pause/Resume/Cancel print jobs
-  - Live camera feed
+### 🎮 Full Control
+- **Switches**: LED control, filtration fan (model-dependent)
+- **Buttons**: Pause, resume, and cancel print jobs directly from Home Assistant
 
-- **Configurable Update Interval**: Set custom polling intervals (5-300 seconds, default 10s)
+### 🚀 Modern Architecture
+- **HTTP-First Design**: Superior reliability compared to TCP-only implementations
+- **Async/Await**: Fully asynchronous for optimal Home Assistant integration
+- **Auto-Discovery**: UDP-based network discovery with manual fallback
+- **Configurable Polling**: Adjust update frequency from 5-300 seconds
 
-## Supported Models
+## Supported Hardware
 
-- FlashForge Adventurer 5M Series
-- FlashForge Adventurer 4
-- Other FlashForge models with HTTP API support
+- **FlashForge Adventurer 5M Series** (AD5M, AD5M Pro)
+- **FlashForge Adventurer 4**
 
-## Prerequisites
+Model-specific features (LED, filtration, camera) are automatically detected and enabled when available.
 
-### Printer Setup
+## Requirements
 
-1. **Enable LAN Mode** on your FlashForge printer
-2. **Obtain Check Code** from the printer's display (Settings → Network → LAN Mode)
-3. **Note the Serial Number** (visible on printer display or discovery)
-4. **Assign Static IP** (recommended) to your printer via your router settings
-
-For detailed instructions on enabling LAN mode, see: [FlashForge LAN Mode Setup](https://www.youtube.com/watch?v=krdEGccZuKo)
-
-### Home Assistant Requirements
-
-- Home Assistant 2023.1.0 or newer
-- Network access to printer on the same local network
+- **Home Assistant**: 2024.1.0 or newer
+- **Python Library**: [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.0.0+
+- **Network**: Local LAN connectivity to printer
+- **Printer Setup**: LAN mode enabled with check code
 
 ## Installation
 
-### HACS (Recommended)
+### Via HACS (Recommended)
 
-1. Open HACS in Home Assistant
-2. Click on "Integrations"
-3. Click the three dots in the top right corner
-4. Select "Custom repositories"
-5. Add this repository URL: `https://github.com/cope/ff-5mp-hass`
-6. Select category: "Integration"
-7. Click "Add"
-8. Search for "FlashForge 3D Printer" in HACS
-9. Click "Download"
-10. Restart Home Assistant
+1. Open **HACS** in Home Assistant
+2. Click on **Integrations**
+3. Click the **⋮** menu (top right) → **Custom repositories**
+4. Add repository:
+   - **URL**: `https://github.com/GhostTypes/ff-5mp-hass`
+   - **Category**: `Integration`
+5. Click **Add**
+6. Search for "FlashForge" in HACS
+7. Click **Download**
+8. **Restart Home Assistant**
 
 ### Manual Installation
 
-1. Download the latest release from this repository
-2. Copy the `custom_components/flashforge` folder to your Home Assistant's `custom_components` directory
-3. If the `custom_components` directory doesn't exist, create it in the same directory as your `configuration.yaml`
+1. Download the [latest release](https://github.com/GhostTypes/ff-5mp-hass/releases)
+2. Extract the `custom_components/flashforge` folder
+3. Copy to your Home Assistant `config/custom_components/` directory
 4. Restart Home Assistant
 
 ## Configuration
 
-### Via UI (Recommended)
+### Prerequisites: Enable LAN Mode
 
-1. Go to **Settings** → **Devices & Services**
-2. Click **"+ Add Integration"**
-3. Search for **"FlashForge 3D Printer"**
-4. Choose configuration mode:
-   - **Automatic Discovery**: Scans network for printers
-   - **Manual Entry**: Enter IP address and credentials manually
+Before adding the integration, you must enable LAN mode on your FlashForge printer:
 
-#### Automatic Discovery
+1. On the printer touchscreen, go to **Settings** → **Network** → **LAN Mode**
+2. Enable LAN mode
+3. Note the **Check Code** (8-digit code) - you'll need this for setup
+4. Find your printer's serial number (usually on a label on the printer)
 
-1. Select "Automatic Discovery"
-2. Wait for printer discovery (up to 5 seconds)
-3. If multiple printers found, select your printer
-4. Enter the **Check Code** from your printer's display
-5. Click Submit
+[📺 Video Tutorial](https://www.youtube.com/watch?v=krdEGccZuKo)
 
-#### Manual Configuration
+### Adding the Integration
 
-1. Select "Manual Entry"
-2. Enter:
-   - **Printer Name**: Friendly name (e.g., "My AD5M")
-   - **IP Address**: Printer's IP address (e.g., 192.168.1.100)
-   - **Serial Number**: Printer's serial number
-   - **Check Code**: Check code from printer display
-3. Click Submit
+#### Option 1: Automatic Discovery (Recommended)
 
-### Options
+1. Go to **Settings** → **Devices & Services** → **Integrations**
+2. Click **+ Add Integration**
+3. Search for **"FlashForge"**
+4. Select your printer from the discovered list
+5. Enter your printer's **Check Code**
+6. Click **Submit**
 
-After setup, you can configure additional options:
+#### Option 2: Manual Configuration
 
-1. Go to **Settings** → **Devices & Services**
-2. Find your FlashForge printer
-3. Click "Configure"
-4. Adjust **Update Interval** (5-300 seconds, default: 10 seconds)
+1. Go to **Settings** → **Devices & Services** → **Integrations**
+2. Click **+ Add Integration**
+3. Search for **"FlashForge"**
+4. Select **"Configure Manually"**
+5. Enter:
+   - **IP Address**: Your printer's IP (e.g., `192.168.1.100`)
+   - **Printer Name**: Friendly name (optional)
+   - **Serial Number**: From printer label
+   - **Check Code**: From LAN mode settings
+6. Click **Submit**
 
-## Entities
+### Configuration Options
 
-Once configured, the integration creates the following entities:
+After setup, you can adjust settings:
 
-### Sensors (18 total)
+1. Go to **Settings** → **Devices & Services** → **FlashForge**
+2. Click **⋮** on your printer → **Configure**
+3. **Scan Interval**: Update frequency in seconds (5-300, default: 10)
 
-**Core Print Status:**
+## Available Entities
+
+### Sensors
+
 | Entity | Description | Unit |
 |--------|-------------|------|
-| Machine Status | Current printer state (READY, PRINTING, PAUSED, ERROR) | - |
-| Nozzle Temperature | Current nozzle temperature | °C |
-| Nozzle Target Temperature | Target nozzle temperature | °C |
-| Bed Temperature | Current bed temperature | °C |
-| Bed Target Temperature | Target bed temperature | °C |
-| Print Progress | Current print job progress | % |
-| Current File | Name of current/last file | - |
-| Current Layer | Current layer number | - |
-| Total Layers | Total layers in print | - |
-| Elapsed Time | Time elapsed since print started | seconds |
-| Remaining Time | Estimated time remaining (calculated) | seconds |
-
-**Print Details:**
-| Entity | Description | Unit |
-|--------|-------------|------|
-| Filament Length | Estimated filament usage | meters |
-| Filament Weight | Estimated filament weight | grams |
-| Print Speed | Current print speed adjustment | % |
-| Z-Axis Offset | Z-axis compensation value | mm |
-| Nozzle Size | Installed nozzle size | - |
-| Filament Type | Current filament type | - |
+| `sensor.flashforge_machine_status` | Current printer state (idle, printing, paused, error) | - |
+| `sensor.flashforge_nozzle_temperature` | Current extruder temperature | °C |
+| `sensor.flashforge_nozzle_target_temperature` | Target extruder temperature | °C |
+| `sensor.flashforge_bed_temperature` | Current bed temperature | °C |
+| `sensor.flashforge_bed_target_temperature` | Target bed temperature | °C |
+| `sensor.flashforge_print_progress` | Print completion percentage | % |
+| `sensor.flashforge_current_file` | Currently printing file name | - |
+| `sensor.flashforge_current_layer` | Current layer number | - |
+| `sensor.flashforge_total_layers` | Total layer count | - |
+| `sensor.flashforge_elapsed_time` | Time spent printing | seconds |
+| `sensor.flashforge_remaining_time` | Estimated time remaining | seconds |
+| `sensor.flashforge_filament_length` | Estimated filament length needed | meters |
+| `sensor.flashforge_filament_weight` | Estimated filament weight | grams |
+| `sensor.flashforge_print_speed` | Speed adjustment percentage | % |
+| `sensor.flashforge_z_offset` | Z-axis compensation | mm |
 
 ### Binary Sensors
 
-| Entity | Description |
-|--------|-------------|
-| Printing | Whether printer is actively printing |
-| Online | Connection status |
-| Error | Whether printer has an error |
-| Paused | Whether print is paused |
+| Entity | Description | Device Class |
+|--------|-------------|--------------|
+| `binary_sensor.flashforge_printing` | On when actively printing | `running` |
+| `binary_sensor.flashforge_online` | On when printer is connected | `connectivity` |
+| `binary_sensor.flashforge_error` | On when error detected | `problem` |
+| `binary_sensor.flashforge_paused` | On when print is paused | - |
 
 ### Switches
 
 | Entity | Description | Availability |
 |--------|-------------|--------------|
-| LED | Control printer LED lighting | AD5X models |
-| Filtration | Control air filtration system | AD5X models |
+| `switch.flashforge_led` | Control printer LED lights | Model-dependent |
+| `switch.flashforge_filtration` | Control filtration fan | Model-dependent |
 
 ### Buttons
 
 | Entity | Description |
 |--------|-------------|
-| Pause Print | Pause current print job |
-| Resume Print | Resume paused print job |
-| Cancel Print | Cancel current print job |
+| `button.flashforge_pause_print` | Pause active print job |
+| `button.flashforge_resume_print` | Resume paused print job |
+| `button.flashforge_cancel_print` | Cancel and abort print job |
 
 ### Camera
 
 | Entity | Description |
 |--------|-------------|
-| Camera | Live MJPEG camera stream (port 8080) |
+| `camera.flashforge_camera` | Live MJPEG stream from printer camera |
 
 ## Usage Examples
 
-### Automation: Notify When Print Complete
+### Automation: Notify When Print Completes
 
 ```yaml
 automation:
-  - alias: "Notify when 3D print completes"
+  - alias: "3D Print Complete Notification"
     trigger:
       - platform: state
-        entity_id: binary_sensor.flashforge_printer_printing
+        entity_id: binary_sensor.flashforge_printing
         from: "on"
         to: "off"
     action:
       - service: notify.mobile_app
         data:
-          title: "3D Print Complete"
-          message: "Your print job {{ state_attr('sensor.flashforge_printer_current_file', 'state') }} is finished!"
+          title: "Print Complete"
+          message: "{{ states('sensor.flashforge_current_file') }} finished printing!"
 ```
 
-### Automation: Turn Off LED When Not Printing
+### Automation: Alert on Print Error
 
 ```yaml
 automation:
-  - alias: "Turn off printer LED when idle"
+  - alias: "3D Printer Error Alert"
     trigger:
       - platform: state
-        entity_id: sensor.flashforge_printer_machine_status
-        to: "READY"
-        for:
-          minutes: 5
+        entity_id: binary_sensor.flashforge_error
+        to: "on"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Printer Error"
+          message: "FlashForge printer has encountered an error!"
+          data:
+            priority: high
+```
+
+### Automation: Turn Off LED When Print Finishes
+
+```yaml
+automation:
+  - alias: "Turn Off Printer LED After Print"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.flashforge_printing
+        from: "on"
+        to: "off"
     action:
       - service: switch.turn_off
         target:
-          entity_id: switch.flashforge_printer_led
+          entity_id: switch.flashforge_led
 ```
 
-### Dashboard Card Example
+### Lovelace Card Example
 
 ```yaml
 type: entities
 title: FlashForge Printer
 entities:
-  - entity: sensor.flashforge_printer_machine_status
-  - entity: binary_sensor.flashforge_printer_printing
-  - entity: sensor.flashforge_printer_print_progress
-  - entity: sensor.flashforge_printer_nozzle_temperature
-  - entity: sensor.flashforge_printer_bed_temperature
-  - entity: sensor.flashforge_printer_current_file
-  - entity: sensor.flashforge_printer_remaining_time
+  - entity: sensor.flashforge_machine_status
+  - entity: binary_sensor.flashforge_printing
+  - entity: sensor.flashforge_print_progress
+  - entity: sensor.flashforge_nozzle_temperature
+  - entity: sensor.flashforge_bed_temperature
+  - entity: sensor.flashforge_remaining_time
   - type: divider
-  - entity: switch.flashforge_printer_led
-  - entity: button.flashforge_printer_pause_print
-  - entity: button.flashforge_printer_resume_print
-  - entity: button.flashforge_printer_cancel_print
+  - entity: button.flashforge_pause_print
+  - entity: button.flashforge_resume_print
+  - entity: button.flashforge_cancel_print
+  - type: divider
+  - entity: switch.flashforge_led
+  - entity: switch.flashforge_filtration
+```
+
+### Camera Card
+
+```yaml
+type: picture-glance
+camera_image: camera.flashforge_camera
+entities:
+  - binary_sensor.flashforge_printing
+  - sensor.flashforge_print_progress
 ```
 
 ## Troubleshooting
 
-### Printer Not Discovered
+### Discovery Not Finding Printer
 
-- Ensure printer is on the same network as Home Assistant
-- Check that LAN mode is enabled on the printer
-- Try manual configuration with printer's IP address
-- Check firewall settings allow UDP broadcast on port 18007
+**Problem**: Automatic discovery doesn't detect your printer.
 
-### Cannot Connect Error
+**Solutions**:
+- Ensure printer is on the same network/subnet as Home Assistant
+- Check firewall settings (UDP port 18007 must be open)
+- Verify LAN mode is enabled on the printer
+- Try manual configuration with IP address
 
-- Verify IP address is correct
-- Ensure serial number and check code are entered correctly
-- Confirm LAN mode is enabled with correct check code
-- Check network connectivity between Home Assistant and printer
-- Assign static IP to printer in router settings
+### Connection Failed During Setup
 
-### Entities Not Updating
+**Problem**: Setup fails with connection error.
 
-- Check configured scan interval in integration options
-- Verify printer is powered on and connected to network
-- Check Home Assistant logs for errors: **Settings** → **System** → **Logs**
+**Solutions**:
+- Verify printer has LAN mode enabled
+- Check the check code is correct (codes can expire)
+- Ensure printer is powered on and connected to network
+- Test API access manually: `http://<PRINTER_IP>:8898/info`
+- Verify serial number matches printer label
 
-### Switch Entities Not Available
+### Entities Show "Unavailable"
 
-- LED and Filtration switches only available on supported models (primarily AD5X series)
-- Check that printer model supports these features
-- Entities will show as unavailable if feature not supported
+**Problem**: Integration installed but entities are unavailable.
+
+**Solutions**:
+- Check printer is online and reachable
+- Verify credentials are still valid
+- Reload the integration: Settings → Integrations → FlashForge → ⋮ → Reload
+- Check Home Assistant logs for connection errors
+
+### Python API Not Installing
+
+**Problem**: Integration fails due to missing flashforge-python-api.
+
+**Solutions**:
+- Verify Home Assistant has internet access
+- Check PyPI is reachable: https://pypi.org/project/flashforge-python-api/
+- Try manual install: `pip install flashforge-python-api` in HA environment
+- Restart Home Assistant after installation
+
+### Static IP Recommended
+
+For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes.
 
 ## Development
 
-This integration uses the [flashforge-python-api](https://github.com/cope/ff-5mp-api-py) library for all printer communication.
+### Architecture
 
-### Project Structure
+This integration uses:
+- **[flashforge-python-api](https://github.com/GhostTypes/ff-5mp-api-py)**: HTTP API client library
+- **DataUpdateCoordinator**: Efficient polling with configurable intervals
+- **HTTP API**: Port 8898 for printer control and status
+- **Camera Stream**: Port 8080 for MJPEG video feed
+- **UDP Discovery**: Ports 48899 (broadcast) and 18007 (listen)
 
-```
-custom_components/flashforge/
-├── __init__.py          # Component initialization
-├── manifest.json        # Integration metadata
-├── config_flow.py       # Configuration UI
-├── const.py            # Constants
-├── coordinator.py       # Data update coordinator
-├── sensor.py           # Sensor entities
-├── binary_sensor.py    # Binary sensor entities
-├── switch.py           # Switch entities
-├── button.py           # Button entities
-├── camera.py           # Camera entity
-├── strings.json        # UI strings
-└── translations/
-    └── en.json         # English translations
-```
-
-## Contributing
+### Contributing
 
 Contributions are welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a pull request
+4. Test thoroughly with a real printer
+5. Submit a pull request
+
+### Related Projects
+
+- **Python API Library**: [ff-5mp-api-py](https://github.com/GhostTypes/ff-5mp-api-py)
+- **Reference Implementation**: [hass-flashforge-adventurer-5](https://github.com/kruzhkov/hass-flashforge-adventurer-5)
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Credits
 
-- Based on reference implementation: [hass-flashforge-adventurer-5](https://github.com/kruzhkov/hass-flashforge-adventurer-5)
-- Uses the [flashforge-python-api](https://github.com/cope/ff-5mp-api-py) library
-- Developed for the Home Assistant community
+- **Author**: [GhostTypes](https://github.com/GhostTypes)
+- **Python API**: Built on [flashforge-python-api](https://pypi.org/project/flashforge-python-api/)
+- **Inspiration**: TCP implementation by [kruzhkov](https://github.com/kruzhkov)
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/cope/ff-5mp-hass/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/cope/ff-5mp-hass/discussions)
-- **Home Assistant Community**: [Community Forum](https://community.home-assistant.io/)
+- **Issues**: [GitHub Issues](https://github.com/GhostTypes/ff-5mp-hass/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/GhostTypes/ff-5mp-hass/discussions)
+- **Documentation**: [API Library Docs](https://github.com/GhostTypes/ff-5mp-api-py#readme)
 
-## Changelog
+---
 
-### Version 1.0.0
-- Initial release
-- HTTP API support
-- Automatic discovery and manual configuration
-- Full sensor coverage
-- Control buttons and switches
-- Camera support
-- Configurable polling interval
+**If you find this integration useful, please ⭐ star the repository!**
