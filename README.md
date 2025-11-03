@@ -70,7 +70,6 @@ Before adding the integration, you must enable LAN mode on your FlashForge print
 1. On the printer touchscreen, go to **Settings** → **Network** → **LAN Mode**
 2. Enable LAN mode
 3. Note the **Check Code** (8-digit code) - you'll need this for setup
-4. Find your printer's serial number (usually on a label on the printer)
 
 [📺 Video Tutorial](https://www.youtube.com/watch?v=krdEGccZuKo)
 
@@ -94,7 +93,7 @@ Before adding the integration, you must enable LAN mode on your FlashForge print
 5. Enter:
    - **IP Address**: Your printer's IP (e.g., `192.168.1.100`)
    - **Printer Name**: Friendly name (optional)
-   - **Serial Number**: From printer label
+   - **Serial Number**: From printer settings
    - **Check Code**: From LAN mode settings
 6. Click **Submit**
 
