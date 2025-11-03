@@ -4,7 +4,8 @@
       "mcp__code-context-provider-mcp__get_code_context",
       "mcp__cloudscraper-mcp__scrape_url",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:hacs.xyz)"
+      "WebFetch(domain:hacs.xyz)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,315 +1,125 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
-
-This repository is for developing a Home Assistant custom integration for FlashForge 3D Printers. The integration will be HACS-compatible and use the HTTP API exclusively (avoiding TCP API where possible).
-
-**Key Resources:**
-- FlashForge Python API Library: `C:\Users\Cope\Documents\GitHub\ff-5mp-api-py` (referenced as additional working directory)
-- Reference Implementation: https://github.com/kruzhkov/hass-flashforge-adventurer-5 (existing TCP-based integration)
-- HACS Documentation: https://hacs.xyz/docs/publish/integration/
-- Home Assistant Integration Docs: https://developers.home-assistant.io/docs/creating_integration_manifest
-
-## Architecture
-
-### Two-Repository Structure
-1. **ff-5mp-api-py** - Standalone Python library for FlashForge printer communication
-   - HTTP API client (modern, preferred)
-   - TCP/G-code client (legacy, fallback)
-   - Discovery service (UDP broadcast)
-   - Fully typed with Pydantic models
-   - Async-first design
-
-2. **ff-5mp-hass** (this repo) - Home Assistant integration
-   - Consumes the ff-5mp-api-py library
-   - HTTP-first approach (superior to reference implementation)
-   - HACS-compatible structure
-
-### FlashForge API Library Structure
-
-The library in `ff-5mp-api-py` is organized as follows:
-
-**Core Client (`flashforge/client.py`):**
-- `FlashForgeClient` - Main unified client class
-- Orchestrates HTTP and TCP communication layers
-- Control modules accessed via properties:
-  - `client.control` - Movement, LED, filtration, camera
-  - `client.job_control` - Start/pause/resume/cancel prints
-  - `client.info` - Status and machine information
-  - `client.files` - File upload/download/management
-  - `client.temp_control` - Temperature settings
-  - `client.tcp_client` - Low-level TCP access
-
-**Discovery (`flashforge/discovery/`):**
-- `FlashForgePrinterDiscovery` - UDP-based network discovery
-- Broadcasts on port 48899, listens on port 18007
-- Returns `FlashForgePrinter` objects with name, serial, and IP
-
-**Models (`flashforge/models/`):**
-- Pydantic models for type safety
-- `FFMachineInfo` - Comprehensive machine state and info
-- `MachineState` - Current operational state enum
-- Response models for all API endpoints
-
-**TCP Client (`flashforge/tcp/`):**
-- Legacy G-code communication
-- Parsers for various response formats
-- Used for features not available in HTTP API
-
-## Home Assistant Integration Requirements
-
-### Required Directory Structure
-```
-custom_components/flashforge/
-├── __init__.py          # Component setup, config flow registration
-├── manifest.json        # Integration metadata (REQUIRED)
-├── config_flow.py       # UI configuration flow
-├── const.py            # Constants (domain, defaults)
-├── coordinator.py       # Data update coordinator
-├── sensor.py           # Sensor entities (status, temperatures, progress)
-├── camera.py           # Camera entity for printer feed
-├── binary_sensor.py    # Binary sensors (is_printing, etc.)
-├── switch.py           # Switch entities (LED, filtration)
-├── button.py           # Button entities (home, pause, resume, cancel)
-└── strings.json        # Localization strings
-```
-
-### manifest.json Requirements
-Must include these keys:
-- `domain` - Integration domain (e.g., "flashforge")
-- `name` - Display name
-- `documentation` - Link to documentation
-- `issue_tracker` - Link to GitHub issues
-- `codeowners` - GitHub usernames with @ prefix
-- `version` - Semantic version
-- `requirements` - Python dependencies (include `flashforge-python-api>=1.0.0`)
-- `iot_class` - Set to `local_polling` or `local_push`
-- `config_flow` - Set to `true` for UI configuration
-
-### HACS Compatibility
-1. Repository must have `hacs.json` in root (optional but recommended)
-2. Integration must be in `custom_components/<integration_name>/` directory
-3. Must register with Home Assistant Brands: https://github.com/home-assistant/brands
-4. Recommended to use GitHub releases for versioning
-
-### Configuration Flow Pattern
-Users should configure via UI (Settings → Integrations → Add Integration):
-1. Discover printers automatically using `FlashForgePrinterDiscovery`
-2. Or allow manual IP entry
-3. Collect serial number and check code (required for HTTP API)
-4. Validate connection during setup
-5. Create device with entities
-
-## Development Commands
-
-### FlashForge API Library (ff-5mp-api-py)
-
-**Setup:**
-```bash
-cd C:\Users\Cope\Documents\GitHub\ff-5mp-api-py
-uv sync                    # Install core dependencies
-uv sync --all-extras      # Install with dev tools and imaging support
-```
-
-**Testing:**
-```bash
-# Run all tests
-uv run python tests/run_tests.py
-
-# Run tests with coverage
-uv run python tests/run_tests.py --coverage
-
-# Run specific test suites
-uv run python tests/run_tests.py --discovery
-uv run python tests/run_tests.py --parsers
-
-# Run pytest directly for more control
-uv run pytest -v tests/
-uv run pytest -v tests/test_discovery.py -k "test_name"
-```
-
-**Code Quality:**
-```bash
-# Check code quality (formatting, linting, types)
-uv run python tests/run_tests.py --lint
-
-# Auto-format code
-uv run python tests/run_tests.py --format
-
-# Individual tools
-uv run black flashforge/ tests/ examples/
-uv run ruff check flashforge/ tests/ examples/
-uv run ruff check --fix flashforge/ tests/ examples/
-uv run mypy flashforge/
-```
-
-**Environment Info:**
-```bash
-uv run python tests/run_tests.py --env-info
-```
-
-### Home Assistant Integration (ff-5mp-hass)
-
-**Local Development:**
-```bash
-# Install HA development dependencies
-pip install homeassistant
-
-# Validate manifest
-hass --script check_config -c config/
-
-# Run Home Assistant with custom component
-hass -c config/
-```
-
-**HACS Validation:**
-```bash
-# Use HACS Action locally (requires Docker)
-docker run --rm -v $(pwd):/workspace ghcr.io/hacs/action:latest
-```
-
-## Key Implementation Patterns
-
-### Using FlashForge Client in Home Assistant
-
-```python
-from flashforge import FlashForgeClient, FlashForgePrinterDiscovery
-
-# Discovery
-discovery = FlashForgePrinterDiscovery()
-printers = await discovery.discover_printers_async(timeout=5.0)
-
-# Client initialization
-async with FlashForgeClient(
-    ip_address="192.168.1.100",
-    serial_number="ABCD1234",
-    check_code="12345678"
-) as client:
-    # Verify connection
-    if await client.initialize():
-        # Get status
-        status = await client.info.get_machine_status()
-
-        # Control printer
-        await client.control.home_xyz()
-        await client.temp_control.set_bed_temp(60)
-
-        # Job control
-        await client.job_control.pause_print_job()
-        await client.job_control.resume_print_job()
-```
-
-### Data Update Coordinator Pattern
-
-Use Home Assistant's `DataUpdateCoordinator` for polling:
-- Poll `client.info.get_machine_status()` every 10-30 seconds
-- Handle connection errors gracefully
-- Update all entities from coordinator data
-
-### Printer Models Support
-
-Tested models:
-- FlashForge Adventurer 5M Series
-- FlashForge Adventurer 4
-
-Detection:
-- `client.is_ad5x` - True for AD5X models
-- `client.is_pro` - True for Pro models
-- `client.led_control` - True if LED control available
-- `client.filtration_control` - True if filtration available
-
-### Authentication Requirements
-
-The HTTP API requires LAN mode setup:
-1. Enable LAN mode on printer
-2. Obtain check code from printer display
-3. Both serial number and check code required for API access
-4. See: https://www.youtube.com/watch?v=krdEGccZuKo
-
-## Testing Strategy
-
-### For API Library
-- Unit tests in `tests/` directory
-- Mock printer responses for deterministic testing
-- Integration tests marked with `@pytest.mark.integration`
-- Network tests marked with `@pytest.mark.network`
-
-### For Home Assistant Integration
-- Use Home Assistant's test fixtures
-- Mock `FlashForgeClient` in tests
-- Test config flow with discovery and manual entry
-- Test entity state updates and error handling
-
-## Important Technical Details
-
-### HTTP vs TCP API
-- **Prefer HTTP API** - Modern, more reliable, better error handling
-- HTTP uses port 8898
-- TCP used only for features unavailable in HTTP (thumbnails, some status data)
-- TCP uses port 8899
-
-### Discovery Protocol
-- UDP broadcast on port 48899
-- Listen for responses on port 18007
-- Broadcast to all network interfaces
-- 5-second timeout recommended
-
-### Entity Suggestions
-**Sensors:**
-- Printer state (idle, printing, paused, error)
-- Current temperature (extruder, bed)
-- Target temperature (extruder, bed)
-- Print progress (percentage)
-- Current filename
-- Estimated time remaining
-
-**Binary Sensors:**
-- Is printing
-- Is online
-- Has error
-
-**Switches:**
-- LED control (if supported)
-- Filtration (if supported)
-
-**Buttons:**
-- Home all axes
-- Pause print
-- Resume print
-- Cancel print
-
-**Camera:**
-- Live camera feed (if supported by model)
-
-## Common Pitfalls
-
-1. **Content-Type Header Issue**: FlashForge printers sometimes return `appliation/json` instead of `application/json`. The library handles this, but be aware.
-
-2. **Printer Availability**: Not all features available on all models. Check `client.led_control` and `client.filtration_control` before exposing entities.
-
-3. **Model-Specific Features**: Use `client.is_ad5x` and `client.is_pro` to enable model-specific functionality.
-
-4. **Static IP Recommended**: Advise users to assign static IP to printer in router settings for reliability.
-
-5. **Session Management**: Always use async context manager (`async with`) or call `client.dispose()` to clean up resources.
-
-## Related Documentation Links
-
-**HACS Publisher Documentation:**
-- Integration requirements: https://hacs.xyz/docs/publish/integration/
-- General publishing guide: https://hacs.xyz/docs/publish/start/
-- Include in default repo: https://hacs.xyz/docs/publish/include/
-- GitHub Action validation: https://hacs.xyz/docs/publish/action/
-
-**Home Assistant Developer Docs:**
-- Creating integrations: https://developers.home-assistant.io/docs/creating_integration_manifest
-- Config flow: https://developers.home-assistant.io/docs/config_entries_config_flow_handler
-- Data coordinator: https://developers.home-assistant.io/docs/integration_fetching_data
-- Entity platform docs: https://developers.home-assistant.io/docs/core/entity/
-
-**Reference Implementations:**
-- HACS Blueprint: https://github.com/custom-components/blueprint
-- Cookiecutter template: https://github.com/oncleben31/cookiecutter-homeassistant-custom-component
-- Existing FlashForge integration: https://github.com/kruzhkov/hass-flashforge-adventurer-5
+Guidance for AI coding assistants working in this repository.
+
+## Current State (January 2025)
+- Integration **version 1.0.1** is published and HACS-ready.
+- Provides a complete Home Assistant experience for FlashForge printers using the **HTTP API only**.
+- Entities shipped: **28 total** (18 sensors, 4 binary sensors, 2 switches, 3 buttons, 1 MJPEG camera).
+- UI config flow supports automatic discovery, manual entry, credential validation, and an adjustable polling interval (5–300 s, default 10 s).
+- Depends on `flashforge-python-api>=1.0.0` from the companion repository `ff-5mp-api-py`.
+
+Treat this file as the living source of truth for workflows and expectations—update it whenever the process changes.
+
+## Repository Layout Reference
+- `custom_components/flashforge/` – Integration source (entities, coordinator, config flow, localization).
+- `homeassistant/` – Local Home Assistant sandbox (virtualenv, config, launch scripts) for manual validation.
+- `scripts/` – Utility scripts for network discovery and diagnostics.
+- `README.md` – Public documentation aligned with the published build.
+- `CHANGELOG.md` – Release history (must match `manifest.json` versioning).
+- `CLAUDE.md`, `AGENTS.md` – AI-facing playbooks; keep them synchronized.
+- `HOME_ASSISTANT_DOCS_COMPANION.md` – Quick links and reminders from the official HA docs.
+- `HACS_PUBLISHER_COMPANION.md` – Condensed guide to HACS publisher requirements.
+
+## Key Capabilities
+- **Configuration**
+  - Automatic printer discovery via UDP broadcast with multi-printer selection.
+  - Manual fallback for IP/serial/check-code entry.
+  - Credential validation before config entry creation.
+  - Options flow exposes adjustable polling (5–300 s).
+- **Monitoring**
+  - 18 sensors covering status, temperatures, progress, layers, timing, filament metrics.
+  - 4 binary sensors tracking printing, online, error, and paused states.
+  - Entities grouped under a single device with manufacturer/model metadata.
+- **Control**
+  - LED and filtration switches with capability detection (graceful “unavailable” for unsupported models).
+  - Pause/resume/cancel buttons with post-action refresh.
+  - MJPEG camera entity targeting `http://<ip>:8080/?action=stream`.
+- **Architecture**
+  - HTTP API only (`FlashForgeClient.info/control/job_control`).
+  - `DataUpdateCoordinator` refresh loop with error recovery and client cleanup.
+  - Unique IDs built from config entry, serial number, and entity keys.
+
+## Installation Quick Start
+1. Copy or symlink `custom_components/flashforge` into your Home Assistant `config/custom_components/` directory.
+2. Restart Home Assistant.
+3. Navigate to **Settings → Devices & Services → + Add Integration → FlashForge**.
+4. Choose **Automatic Discovery** or **Manual Entry** and provide the printer’s check code and serial number.
+5. After setup, adjust the polling interval from the integration’s **Configure** dialog if needed.
+
+## Core Modules and Responsibilities
+- `__init__.py` – Config entry setup, HTTP client initialization, coordinator registration, teardown.
+- `config_flow.py` – Discovery + manual onboarding, credential validation via HTTP, options flow for scan interval.
+- `coordinator.py` – `DataUpdateCoordinator` wrapping `FlashForgeClient.info.get()` with graceful error handling and cleanup.
+- `sensor.py` – 18 sensor entities. Modify the `SENSORS` tuple, translations, and docs together when changing sensors.
+- `binary_sensor.py` – 4 machine-state binary sensors (printing, online, error, paused).
+- `switch.py` – LED and filtration switches with client capability checks.
+- `button.py` – Pause/resume/cancel commands; request a refresh after each action.
+- `camera.py` – MJPEG camera entity (`http://<ip>:8080/?action=stream` by default).
+- `util.py` – Shared helpers (currently HTTP session disposal).
+- `strings.json` / `translations/en.json` – Keep UI copy synchronized between minimal strings and translation files.
+
+## External Dependencies & Linked Projects
+- **flashforge-python-api (ff-5mp-api-py)** – Located at `C:\Users\Cope\Documents\GitHub\ff-5mp-api-py`. Supplies the async HTTP client, discovery helpers, models (`FFMachineInfo`, `MachineState`, etc.). Do not duplicate API logic in this repository—import from the library.
+- **Companion library** – `ff-5mp-api-py` (FlashForge HTTP API client).
+
+## Development Workflow
+1. **Implementation**
+   - Keep everything async; no blocking calls inside Home Assistant callbacks.
+   - Use HTTP-facing client methods (`client.info`, `client.control`, `client.job_control`, etc.).
+   - Respect capability flags (`client.led_control`, `client.filtration_control`) before exposing features.
+2. **Localization & Docs**
+   - Update `strings.json` and `translations/en.json` whenever UI text changes.
+   - Reflect behavior changes in `README.md`, `CHANGELOG.md`, `CLAUDE.md`, and `AGENTS.md` as appropriate.
+3. **Versioning**
+   - Bump `manifest.json` `version` with every release-worthy change; keep `CHANGELOG.md` and release notes in sync.
+4. **Style**
+   - Favor concise helper functions over duplicated logic.
+   - Maintain alphabetical imports within groups.
+   - Reserve comments for clarifying non-obvious behavior.
+
+## Testing & Validation
+- **Local Home Assistant instance**
+  - Windows: `homeassistant\start-homeassistant.bat`
+  - WSL/Linux/macOS: `./homeassistant/start-homeassistant.sh`
+  - Logs: `homeassistant/config/home-assistant.log` (tail for live debugging).
+- **Quick checklist**
+  1. Confirm printer is on, LAN mode enabled, and check code/serial are available.
+  2. Install the integration (copy folder or use dev symlink) and restart Home Assistant.
+  3. Add the integration via UI; test both discovery and manual paths.
+  4. Open the created device and verify entities:
+     - Sensors: machine status, nozzle temps/targets, bed temps/targets, progress, file, current/total layers, elapsed/remaining time, filament length/weight, print speed, z offset, move mode, nozzle size, filament type.
+     - Binary sensors: printing, online, error, paused.
+     - Switches: LED and filtration (may show unavailable if unsupported).
+     - Buttons: pause, resume, cancel.
+     - Camera: MJPEG feed reachable.
+  5. Trigger control actions (pause/resume/cancel, switches) and ensure states refresh.
+  6. Observe coordinator error handling by temporarily disconnecting the printer and confirming entities surface availability correctly.
+- **Discovery diagnostics** – `scripts/test_discovery.py` and `scripts/discovery_probe.py` help debug LAN communication without HA.
+- **Automated tests** – None yet. If you add pytest suites, document how to run them and keep them optional for contributors.
+- **Hardware caveat** – Full verification requires a FlashForge printer with LAN mode enabled; simulated runs only confirm flow logic.
+
+## Implementation Guard Rails
+- **HTTP-first policy** – Do not introduce direct TCP/G-code communication here. If unavoidable, extend the API library (`ff-5mp-api-py`) and consume it via HTTP-style helpers.
+- **Coordinator as source of truth** – Entities derive state from the coordinator’s latest `FFMachineInfo`. Avoid storing custom copies of printer state in entities.
+- **Error handling** – Wrap connection issues in `ConfigEntryNotReady`, `ConnectionError`, or `UpdateFailed` so Home Assistant retries gracefully.
+- **Entity additions**
+  - Add to the appropriate entity tuple.
+  - Provide unique `key`, icon, units, and defensive `value_fn`.
+  - Update documentation (README, CHANGELOG, CLAUDE/AGENTS) and translations.
+- **Options flow** – Currently only the scan interval. Extend cautiously to avoid breaking existing entries.
+
+## Release & Publishing Checklist
+1. Implement and document changes.
+2. Bump `manifest.json` `version` and update `CHANGELOG.md`.
+3. Validate in the local HA sandbox and, if possible, on real hardware.
+4. Tag and publish a GitHub release (`vX.Y.Z`) for HACS distribution.
+5. Ensure README badges (release, HACS status, minimum HA version) stay accurate.
+
+## Helpful References
+- HACS publishing guide – https://hacs.xyz/docs/publish/integration/
+- Home Assistant developer docs – https://developers.home-assistant.io/docs/
+- Companion API repo – https://github.com/GhostTypes/ff-5mp-api-py
+- In-repo docs – `README.md`, `CHANGELOG.md`, `CLAUDE.md`, `AGENTS.md`, `homeassistant/README.md`, `HOME_ASSISTANT_DOCS_COMPANION.md`, `HACS_PUBLISHER_COMPANION.md`.
+
+Keep this document in sync with reality so every coding agent starts with the same, accurate context.
