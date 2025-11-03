@@ -57,5 +57,17 @@
         }
       }
     }
+  },
+  "entity": {
+    "select": {
+      "filtration_mode": {
+        "name": "Filtration Mode",
+        "state": {
+          "off": "Off",
+          "internal": "Internal",
+          "external": "External"
+        }
+      }
+    }
   }
 }

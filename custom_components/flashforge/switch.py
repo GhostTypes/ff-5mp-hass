@@ -42,15 +42,13 @@ SWITCHES: tuple[FlashForgeSwitchEntityDescription, ...] = (
         availability_fn=lambda client: client.led_control,
     ),
     FlashForgeSwitchEntityDescription(
-        key="filtration",
-        name="Filtration",
-        icon="mdi:air-filter",
-        is_on_fn=lambda data: bool(
-            getattr(data, "external_fan_on", False) or getattr(data, "internal_fan_on", False)
-        ),
-        turn_on_fn=lambda client: client.control.set_external_filtration_on(),
-        turn_off_fn=lambda client: client.control.set_filtration_off(),
-        availability_fn=lambda client: client.filtration_control,
+        key="camera",
+        name="Camera",
+        icon="mdi:camera",
+        is_on_fn=lambda data: bool(getattr(data, "camera_stream_url", "")),
+        turn_on_fn=lambda client: client.control.turn_camera_on(),
+        turn_off_fn=lambda client: client.control.turn_camera_off(),
+        availability_fn=lambda client: client.is_pro,
     ),
 )
 

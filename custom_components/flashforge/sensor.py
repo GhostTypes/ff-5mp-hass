@@ -162,6 +162,20 @@ SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = (
         icon="mdi:printer-3d-nozzle-heat",
         value_fn=lambda data: data.filament_type if data.filament_type else "Unknown",
     ),
+    FlashForgeSensorEntityDescription(
+        key="lifetime_filament",
+        name="Lifetime Filament Usage",
+        icon="mdi:counter",
+        native_unit_of_measurement="m",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        value_fn=lambda data: round(data.cumulative_filament, 2) if data.cumulative_filament else 0,
+    ),
+    FlashForgeSensorEntityDescription(
+        key="lifetime_runtime",
+        name="Lifetime Runtime",
+        icon="mdi:clock-outline",
+        value_fn=lambda data: data.formatted_total_run_time if data.formatted_total_run_time else "0h:0m",
+    ),
 )
 
 

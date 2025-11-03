@@ -46,6 +46,12 @@ BUTTONS: tuple[FlashForgeButtonEntityDescription, ...] = (
         icon="mdi:stop",
         press_fn=lambda client: client.job_control.cancel_print_job(),
     ),
+    FlashForgeButtonEntityDescription(
+        key="clear_status",
+        name="Clear Status",
+        icon="mdi:notification-clear-all",
+        press_fn=lambda client: client.job_control.clear_platform(),
+    ),
 )
 
 

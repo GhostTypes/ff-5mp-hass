@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-01-02
+
+### Added
+- **New Select Entity**: Filtration Mode control with three options (Off/Internal/External)
+  - Replaces the binary filtration switch with more granular control
+  - Supports both internal and external filtration fans independently
+  - Only available on models with filtration support (AD5M Pro)
+- **New Switch**: Camera power control for Pro models
+  - Turn camera on/off via HTTP API
+  - Only available on Pro models
+- **New Sensors**: Lifetime statistics tracking
+  - `sensor.flashforge_lifetime_filament` - Total filament used over printer lifetime (meters)
+  - `sensor.flashforge_lifetime_runtime` - Total runtime over printer lifetime (formatted as "Xh:Ym")
+- **New Button**: Clear Status button to clear printer errors/warnings
+  - Uses `clear_platform()` API method
+
+### Changed
+- **Filtration Control**: Migrated from binary switch to select entity for better control
+  - Previous: Single on/off switch (only controlled external fan)
+  - Now: Select entity with Off/Internal/External options
+- Entity count updated: 18 sensors (was 15), 1 switch (was 2), 1 select entity (new), 4 buttons (was 3)
+
+### Documentation
+- Updated README with new entity tables
+- Added select entity documentation
+- Updated Lovelace card examples
+- Updated feature list to reflect new capabilities
+
 ## [1.0.1] - 2025-01-02
 
 ### Changed
@@ -58,5 +86,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FlashForge Adventurer 4
 
 [1.0.0]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.0.0
-
 [1.0.1]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.0.1
+[1.1.0]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.1.0

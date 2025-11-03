@@ -10,13 +10,14 @@ A modern Home Assistant custom integration for FlashForge 3D printers using the 
 ## Features
 
 ### 🎯 Comprehensive Monitoring
-- **15 Sensors**: Real-time temperature monitoring, print progress, filament tracking, and more
+- **18 Sensors**: Real-time temperature monitoring, print progress, filament tracking, lifetime statistics, and more
 - **4 Binary Sensors**: Printing status, connectivity, error detection, pause state
 - **Live Camera Feed**: MJPEG stream from printer camera (model-dependent)
 
 ### 🎮 Full Control
-- **Switches**: LED control, filtration fan (model-dependent)
-- **Buttons**: Pause, resume, and cancel print jobs directly from Home Assistant
+- **Switches**: LED control, camera power (Pro models)
+- **Select Entities**: Filtration mode control (Off/Internal/External)
+- **Buttons**: Pause, resume, cancel print jobs, and clear status directly from Home Assistant
 
 ### 🚀 Modern Architecture
 - **HTTP-First Design**: Superior reliability compared to TCP-only implementations
@@ -126,6 +127,10 @@ After setup, you can adjust settings:
 | `sensor.flashforge_filament_weight` | Estimated filament weight | grams |
 | `sensor.flashforge_print_speed` | Speed adjustment percentage | % |
 | `sensor.flashforge_z_offset` | Z-axis compensation | mm |
+| `sensor.flashforge_nozzle_size` | Installed nozzle size | - |
+| `sensor.flashforge_filament_type` | Current filament type | - |
+| `sensor.flashforge_lifetime_filament` | Total filament used over printer lifetime | meters |
+| `sensor.flashforge_lifetime_runtime` | Total runtime over printer lifetime | - |
 
 ### Binary Sensors
 
@@ -141,7 +146,13 @@ After setup, you can adjust settings:
 | Entity | Description | Availability |
 |--------|-------------|--------------|
 | `switch.flashforge_led` | Control printer LED lights | Model-dependent |
-| `switch.flashforge_filtration` | Control filtration fan | Model-dependent |
+| `switch.flashforge_camera` | Control camera power | Pro models only |
+
+### Select Entities
+
+| Entity | Description | Options | Availability |
+|--------|-------------|---------|--------------|
+| `select.flashforge_filtration_mode` | Control filtration system | Off, Internal, External | Model-dependent |
 
 ### Buttons
 
@@ -150,6 +161,7 @@ After setup, you can adjust settings:
 | `button.flashforge_pause_print` | Pause active print job |
 | `button.flashforge_resume_print` | Resume paused print job |
 | `button.flashforge_cancel_print` | Cancel and abort print job |
+| `button.flashforge_clear_status` | Clear printer status/errors |
 
 ### Camera
 
@@ -226,9 +238,11 @@ entities:
   - entity: button.flashforge_pause_print
   - entity: button.flashforge_resume_print
   - entity: button.flashforge_cancel_print
+  - entity: button.flashforge_clear_status
   - type: divider
   - entity: switch.flashforge_led
-  - entity: switch.flashforge_filtration
+  - entity: switch.flashforge_camera
+  - entity: select.flashforge_filtration_mode
 ```
 
 ### Camera Card
