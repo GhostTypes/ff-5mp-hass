@@ -124,7 +124,11 @@
   <h2>Installation</h2>
 </div>
 
+<div align="center">
+
 ### Via HACS (Recommended)
+
+</div>
 
 1. Open **HACS** in Home Assistant
 2. Click on **Integrations**
@@ -137,7 +141,11 @@
 7. Click **Download**
 8. **Restart Home Assistant**
 
+<div align="center">
+
 ### Manual Installation
+
+</div>
 
 1. Download the [latest release](https://github.com/GhostTypes/ff-5mp-hass/releases)
 2. Extract the `custom_components/flashforge` folder
@@ -150,7 +158,11 @@
   <h2>Configuration</h2>
 </div>
 
+<div align="center">
+
 ### Prerequisites: Enable LAN Mode
+
+</div>
 
 Before adding the integration, you must enable LAN mode on your FlashForge printer:
 
@@ -160,9 +172,17 @@ Before adding the integration, you must enable LAN mode on your FlashForge print
 
 [Video Tutorial](https://www.youtube.com/watch?v=krdEGccZuKo)
 
+<div align="center">
+
 ### Adding the Integration
 
+</div>
+
+<div align="center">
+
 #### Option 1: Automatic Discovery (Recommended)
+
+</div>
 
 1. Go to **Settings** → **Devices & Services** → **Integrations**
 2. Click **+ Add Integration**
@@ -171,7 +191,11 @@ Before adding the integration, you must enable LAN mode on your FlashForge print
 5. Enter your printer's **Check Code**
 6. Click **Submit**
 
+<div align="center">
+
 #### Option 2: Manual Configuration
+
+</div>
 
 1. Go to **Settings** → **Devices & Services** → **Integrations**
 2. Click **+ Add Integration**
@@ -184,7 +208,11 @@ Before adding the integration, you must enable LAN mode on your FlashForge print
    - **Check Code**: From LAN mode settings
 6. Click **Submit**
 
+<div align="center">
+
 ### Configuration Options
+
+</div>
 
 After setup, you can adjust settings:
 
@@ -198,7 +226,13 @@ After setup, you can adjust settings:
   <h2>Available Entities</h2>
 </div>
 
+<div align="center">
+
 ### Sensors
+
+</div>
+
+<div align="center">
 
 | Entity | Description | Unit |
 |--------|-------------|------|
@@ -222,7 +256,15 @@ After setup, you can adjust settings:
 | `sensor.flashforge_lifetime_filament` | Total filament used over printer lifetime | meters |
 | `sensor.flashforge_lifetime_runtime` | Total runtime over printer lifetime | - |
 
+</div>
+
+<div align="center">
+
 ### Binary Sensors
+
+</div>
+
+<div align="center">
 
 | Entity | Description | Device Class |
 |--------|-------------|--------------|
@@ -231,20 +273,44 @@ After setup, you can adjust settings:
 | `binary_sensor.flashforge_error` | On when error detected | `problem` |
 | `binary_sensor.flashforge_paused` | On when print is paused | - |
 
+</div>
+
+<div align="center">
+
 ### Switches
+
+</div>
+
+<div align="center">
 
 | Entity | Description | Availability |
 |--------|-------------|--------------|
 | `switch.flashforge_led` | Control printer LED lights | Model-dependent |
 | `switch.flashforge_camera` | Control camera power | Pro models only |
 
+</div>
+
+<div align="center">
+
 ### Select Entities
+
+</div>
+
+<div align="center">
 
 | Entity | Description | Options | Availability |
 |--------|-------------|---------|--------------|
 | `select.flashforge_filtration_mode` | Control filtration system | Off, Internal, External | Model-dependent |
 
+</div>
+
+<div align="center">
+
 ### Buttons
+
+</div>
+
+<div align="center">
 
 | Entity | Description |
 |--------|-------------|
@@ -253,11 +319,21 @@ After setup, you can adjust settings:
 | `button.flashforge_cancel_print` | Cancel and abort print job |
 | `button.flashforge_clear_status` | Clear printer status/errors |
 
+</div>
+
+<div align="center">
+
 ### Camera
+
+</div>
+
+<div align="center">
 
 | Entity | Description |
 |--------|-------------|
 | `camera.flashforge_camera` | Live MJPEG stream from printer camera |
+
+</div>
 
 ---
 
@@ -265,7 +341,11 @@ After setup, you can adjust settings:
   <h2>Usage Examples</h2>
 </div>
 
+<div align="center">
+
 ### Automation: Notify When Print Completes
+
+</div>
 
 ```yaml
 automation:
@@ -282,7 +362,11 @@ automation:
           message: "{{ states('sensor.flashforge_current_file') }} finished printing!"
 ```
 
+<div align="center">
+
 ### Automation: Alert on Print Error
+
+</div>
 
 ```yaml
 automation:
@@ -300,7 +384,11 @@ automation:
             priority: high
 ```
 
+<div align="center">
+
 ### Automation: Turn Off LED When Print Finishes
+
+</div>
 
 ```yaml
 automation:
@@ -316,7 +404,11 @@ automation:
           entity_id: switch.flashforge_led
 ```
 
+<div align="center">
+
 ### Lovelace Card Example
+
+</div>
 
 ```yaml
 type: entities
@@ -339,7 +431,11 @@ entities:
   - entity: select.flashforge_filtration_mode
 ```
 
+<div align="center">
+
 ### Camera Card
+
+</div>
 
 ```yaml
 type: picture-glance
@@ -355,7 +451,11 @@ entities:
   <h2>Troubleshooting</h2>
 </div>
 
+<div align="center">
+
 ### Discovery Not Finding Printer
+
+</div>
 
 **Problem**: Automatic discovery doesn't detect your printer.
 
@@ -365,7 +465,11 @@ entities:
 - Verify LAN mode is enabled on the printer
 - Try manual configuration with IP address
 
+<div align="center">
+
 ### Connection Failed During Setup
+
+</div>
 
 **Problem**: Setup fails with connection error.
 
@@ -376,7 +480,11 @@ entities:
 - Test API access manually: `http://<PRINTER_IP>:8898/info`
 - Verify serial number matches printer label
 
+<div align="center">
+
 ### Entities Show "Unavailable"
+
+</div>
 
 **Problem**: Integration installed but entities are unavailable.
 
@@ -386,7 +494,11 @@ entities:
 - Reload the integration: Settings → Integrations → FlashForge → ⋮ → Reload
 - Check Home Assistant logs for connection errors
 
+<div align="center">
+
 ### Python API Not Installing
+
+</div>
 
 **Problem**: Integration fails due to missing flashforge-python-api.
 
@@ -396,7 +508,11 @@ entities:
 - Try manual install: `pip install flashforge-python-api` in HA environment
 - Restart Home Assistant after installation
 
+<div align="center">
+
 ### Static IP Recommended
+
+</div>
 
 For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes.
 
