@@ -1,45 +1,128 @@
-# FlashForge 3D Printer Integration for Home Assistant
+<div align="center">
+  <h1>FlashForge 3D Printer Integration for Home Assistant</h1>
+  <p>A modern Home Assistant custom integration for FlashForge 3D printers using the HTTP API for reliable, real-time monitoring and control.</p>
+</div>
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![GitHub Release](https://img.shields.io/github/release/GhostTypes/ff-5mp-hass.svg)](https://github.com/GhostTypes/ff-5mp-hass/releases)
-[![License](https://img.shields.io/github/license/GhostTypes/ff-5mp-hass.svg)](LICENSE)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1.0+-blue.svg)](https://www.home-assistant.io/)
+<p align="center">
+  <a href="https://github.com/hacs/integration">
+    <img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge">
+  </a>
+  <a href="https://github.com/GhostTypes/ff-5mp-hass/releases">
+    <img src="https://img.shields.io/github/release/GhostTypes/ff-5mp-hass.svg?style=for-the-badge">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/github/license/GhostTypes/ff-5mp-hass.svg?style=for-the-badge">
+  </a>
+</p>
 
-A modern Home Assistant custom integration for FlashForge 3D printers using the HTTP API for reliable, real-time monitoring and control.
+<p align="center">
+  <img src="https://img.shields.io/badge/Home%20Assistant-2024.1.0+-blue.svg?style=for-the-badge&logo=homeassistant&logoColor=white">
+  <img src="https://img.shields.io/badge/Python-3.11+-blue.svg?style=for-the-badge&logo=python&logoColor=white">
+  <img src="https://img.shields.io/github/downloads/GhostTypes/ff-5mp-hass/total?style=for-the-badge">
+</p>
 
-## Features
+---
 
-### 🎯 Comprehensive Monitoring
-- **18 Sensors**: Real-time temperature monitoring, print progress, filament tracking, lifetime statistics, and more
-- **4 Binary Sensors**: Printing status, connectivity, error detection, pause state
-- **Live Camera Feed**: MJPEG stream from printer camera (model-dependent)
+<div align="center">
+  <h2>Features</h2>
+</div>
 
-### 🎮 Full Control
-- **Switches**: LED control, camera power (Pro models)
-- **Select Entities**: Filtration mode control (Off/Internal/External)
-- **Buttons**: Pause, resume, cancel print jobs, and clear status directly from Home Assistant
+<div align="center">
+<table>
+  <tr>
+    <th>Category</th>
+    <th>Feature</th>
+    <th>Details</th>
+  </tr>
+  <tr>
+    <td rowspan="3"><b>Monitoring</b></td>
+    <td>18 Sensors</td>
+    <td>Real-time temperature monitoring, print progress, filament tracking, lifetime statistics</td>
+  </tr>
+  <tr>
+    <td>4 Binary Sensors</td>
+    <td>Printing status, connectivity, error detection, pause state</td>
+  </tr>
+  <tr>
+    <td>Live Camera Feed</td>
+    <td>MJPEG stream from printer camera (model-dependent)</td>
+  </tr>
+  <tr>
+    <td rowspan="3"><b>Control</b></td>
+    <td>Switches</td>
+    <td>LED control, camera power (Pro models)</td>
+  </tr>
+  <tr>
+    <td>Select Entities</td>
+    <td>Filtration mode control (Off/Internal/External)</td>
+  </tr>
+  <tr>
+    <td>Buttons</td>
+    <td>Pause, resume, cancel print jobs, and clear status directly from Home Assistant</td>
+  </tr>
+  <tr>
+    <td rowspan="4"><b>Architecture</b></td>
+    <td>HTTP-First Design</td>
+    <td>Superior reliability compared to TCP-only implementations</td>
+  </tr>
+  <tr>
+    <td>Async/Await</td>
+    <td>Fully asynchronous for optimal Home Assistant integration</td>
+  </tr>
+  <tr>
+    <td>Auto-Discovery</td>
+    <td>UDP-based network discovery with manual fallback</td>
+  </tr>
+  <tr>
+    <td>Configurable Polling</td>
+    <td>Adjust update frequency from 5-300 seconds</td>
+  </tr>
+</table>
+</div>
 
-### 🚀 Modern Architecture
-- **HTTP-First Design**: Superior reliability compared to TCP-only implementations
-- **Async/Await**: Fully asynchronous for optimal Home Assistant integration
-- **Auto-Discovery**: UDP-based network discovery with manual fallback
-- **Configurable Polling**: Adjust update frequency from 5-300 seconds
+---
 
-## Supported Hardware
+<div align="center">
+  <h2>Supported Hardware</h2>
+</div>
 
-- **FlashForge Adventurer 5M Series** (AD5M, AD5M Pro)
-- **FlashForge Adventurer 4**
+<div align="center">
+<table>
+  <tr>
+    <th>Printer Model</th>
+    <th>Support Status</th>
+  </tr>
+  <tr>
+    <td>FlashForge Adventurer 5M Series</td>
+    <td>AD5M, AD5M Pro</td>
+  </tr>
+  <tr>
+    <td>FlashForge Adventurer 4</td>
+    <td>Fully Supported</td>
+  </tr>
+</table>
+</div>
 
-Model-specific features (LED, filtration, camera) are automatically detected and enabled when available.
+<div align="center">
+<p><i>Model-specific features (LED, filtration, camera) are automatically detected and enabled when available.</i></p>
+</div>
 
-## Requirements
+---
+
+<div align="center">
+  <h2>Requirements</h2>
+</div>
 
 - **Home Assistant**: 2024.1.0 or newer
 - **Python Library**: [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.0.0+
 - **Network**: Local LAN connectivity to printer
 - **Printer Setup**: LAN mode enabled with check code
 
-## Installation
+---
+
+<div align="center">
+  <h2>Installation</h2>
+</div>
 
 ### Via HACS (Recommended)
 
@@ -61,7 +144,11 @@ Model-specific features (LED, filtration, camera) are automatically detected and
 3. Copy to your Home Assistant `config/custom_components/` directory
 4. Restart Home Assistant
 
-## Configuration
+---
+
+<div align="center">
+  <h2>Configuration</h2>
+</div>
 
 ### Prerequisites: Enable LAN Mode
 
@@ -71,7 +158,7 @@ Before adding the integration, you must enable LAN mode on your FlashForge print
 2. Enable LAN mode
 3. Note the **Check Code** (8-digit code) - you'll need this for setup
 
-[📺 Video Tutorial](https://www.youtube.com/watch?v=krdEGccZuKo)
+[Video Tutorial](https://www.youtube.com/watch?v=krdEGccZuKo)
 
 ### Adding the Integration
 
@@ -105,7 +192,11 @@ After setup, you can adjust settings:
 2. Click **⋮** on your printer → **Configure**
 3. **Scan Interval**: Update frequency in seconds (5-300, default: 10)
 
-## Available Entities
+---
+
+<div align="center">
+  <h2>Available Entities</h2>
+</div>
 
 ### Sensors
 
@@ -168,7 +259,11 @@ After setup, you can adjust settings:
 |--------|-------------|
 | `camera.flashforge_camera` | Live MJPEG stream from printer camera |
 
-## Usage Examples
+---
+
+<div align="center">
+  <h2>Usage Examples</h2>
+</div>
 
 ### Automation: Notify When Print Completes
 
@@ -254,7 +349,11 @@ entities:
   - sensor.flashforge_print_progress
 ```
 
-## Troubleshooting
+---
+
+<div align="center">
+  <h2>Troubleshooting</h2>
+</div>
 
 ### Discovery Not Finding Printer
 
@@ -301,18 +400,49 @@ entities:
 
 For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes.
 
-### Related Projects
+---
 
-- **Python API Library**: [ff-5mp-api-py](https://github.com/GhostTypes/ff-5mp-api-py)
-- **TypeScript API Library**: [ff-5mp-api-ts](https://github.com/GhostTypes/ff-5mp-api-ts)
-- **Cross-Platform Monitoring & Control**: [FlashForgeUI-Electron](https://github.com/Parallel-7/FlashForgeUI-Electron)
+<div align="center">
+  <h2>Related Projects</h2>
+</div>
 
-- 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
+<div align="center">
+<table>
+  <tr>
+    <th>Project</th>
+    <th>Description</th>
+    <th>Link</th>
+  </tr>
+  <tr>
+    <td>Python API Library</td>
+    <td>Core HTTP API client for FlashForge printers</td>
+    <td><a href="https://github.com/GhostTypes/ff-5mp-api-py">ff-5mp-api-py</a></td>
+  </tr>
+  <tr>
+    <td>TypeScript API Library</td>
+    <td>TypeScript/JavaScript API client</td>
+    <td><a href="https://github.com/GhostTypes/ff-5mp-api-ts">ff-5mp-api-ts</a></td>
+  </tr>
+  <tr>
+    <td>FlashForgeUI</td>
+    <td>Cross-platform monitoring & control application</td>
+    <td><a href="https://github.com/Parallel-7/FlashForgeUI-Electron">FlashForgeUI-Electron</a></td>
+  </tr>
+</table>
+</div>
 
 ---
 
-**If you find this integration useful, please ⭐ star the repository!**
+<div align="center">
+  <h2>License</h2>
+</div>
+
+<div align="center">
+<p>This project is licensed under the MIT License - see the <a href="LICENSE">LICENSE</a> file for details.</p>
+</div>
+
+---
+
+<div align="center">
+  <p><b>If you find this integration useful, please star the repository!</b></p>
+</div>
