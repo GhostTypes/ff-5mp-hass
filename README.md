@@ -115,10 +115,12 @@
 
 <div align="center">
 
-- **Home Assistant**: 2024.1.0 or newer
-- **Python Library**: [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.0.0+
-- **Network**: Local LAN connectivity to printer
-- **Printer Setup**: LAN mode enabled with check code
+| Requirement | Details |
+|-------------|---------|
+| **Home Assistant** | 2024.1.0 or newer |
+| **Python Library** | [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.0.0+ |
+| **Network** | Local LAN connectivity to printer |
+| **Printer Setup** | LAN mode enabled with check code |
 
 </div>
 
@@ -130,29 +132,10 @@
 
 <div align="center">
 
-### Via HACS (Recommended)
-
-1. Open **HACS** in Home Assistant
-2. Click on **Integrations**
-3. Click the **⋮** menu (top right) → **Custom repositories**
-4. Add repository:
-   - **URL**: `https://github.com/GhostTypes/ff-5mp-hass`
-   - **Category**: `Integration`
-5. Click **Add**
-6. Search for "FlashForge" in HACS
-7. Click **Download**
-8. **Restart Home Assistant**
-
-</div>
-
-<div align="center">
-
-### Manual Installation
-
-1. Download the [latest release](https://github.com/GhostTypes/ff-5mp-hass/releases)
-2. Extract the `custom_components/flashforge` folder
-3. Copy to your Home Assistant `config/custom_components/` directory
-4. Restart Home Assistant
+| Method | Steps |
+|--------|-------|
+| **Via HACS (Recommended)** | 1. Open **HACS** in Home Assistant<br>2. Click on **Integrations**<br>3. Click the **⋮** menu (top right) → **Custom repositories**<br>4. Add repository:<br>&nbsp;&nbsp;&nbsp;• **URL**: `https://github.com/GhostTypes/ff-5mp-hass`<br>&nbsp;&nbsp;&nbsp;• **Category**: `Integration`<br>5. Click **Add**<br>6. Search for "FlashForge" in HACS<br>7. Click **Download**<br>8. **Restart Home Assistant** |
+| **Manual Installation** | 1. Download the [latest release](https://github.com/GhostTypes/ff-5mp-hass/releases)<br>2. Extract the `custom_components/flashforge` folder<br>3. Copy to your Home Assistant `config/custom_components/` directory<br>4. Restart Home Assistant |
 
 </div>
 
@@ -164,55 +147,12 @@
 
 <div align="center">
 
-### Prerequisites: Enable LAN Mode
-
-Before adding the integration, you must enable LAN mode on your FlashForge printer:
-
-1. On the printer touchscreen, go to **Settings** → **Network** → **LAN Mode**
-2. Enable LAN mode
-3. Note the **Check Code** (8-digit code) - you'll need this for setup
-
-[Video Tutorial](https://www.youtube.com/watch?v=krdEGccZuKo)
-
-</div>
-
-<div align="center">
-
-### Adding the Integration
-
-#### Option 1: Automatic Discovery (Recommended)
-
-1. Go to **Settings** → **Devices & Services** → **Integrations**
-2. Click **+ Add Integration**
-3. Search for **"FlashForge"**
-4. Select your printer from the discovered list
-5. Enter your printer's **Check Code**
-6. Click **Submit**
-
-#### Option 2: Manual Configuration
-
-1. Go to **Settings** → **Devices & Services** → **Integrations**
-2. Click **+ Add Integration**
-3. Search for **"FlashForge"**
-4. Select **"Configure Manually"**
-5. Enter:
-   - **IP Address**: Your printer's IP (e.g., `192.168.1.100`)
-   - **Printer Name**: Friendly name (optional)
-   - **Serial Number**: From printer settings
-   - **Check Code**: From LAN mode settings
-6. Click **Submit**
-
-</div>
-
-<div align="center">
-
-### Configuration Options
-
-After setup, you can adjust settings:
-
-1. Go to **Settings** → **Devices & Services** → **FlashForge**
-2. Click **⋮** on your printer → **Configure**
-3. **Scan Interval**: Update frequency in seconds (5-300, default: 10)
+| Step | Instructions |
+|------|--------------|
+| **Prerequisites: Enable LAN Mode** | Before adding the integration, you must enable LAN mode on your FlashForge printer:<br><br>1. On the printer touchscreen, go to **Settings** → **Network** → **LAN Mode**<br>2. Enable LAN mode<br>3. Note the **Check Code** (8-digit code) - you'll need this for setup<br><br>[Video Tutorial](https://www.youtube.com/watch?v=krdEGccZuKo) |
+| **Option 1: Automatic Discovery (Recommended)** | 1. Go to **Settings** → **Devices & Services** → **Integrations**<br>2. Click **+ Add Integration**<br>3. Search for **"FlashForge"**<br>4. Select your printer from the discovered list<br>5. Enter your printer's **Check Code**<br>6. Click **Submit** |
+| **Option 2: Manual Configuration** | 1. Go to **Settings** → **Devices & Services** → **Integrations**<br>2. Click **+ Add Integration**<br>3. Search for **"FlashForge"**<br>4. Select **"Configure Manually"**<br>5. Enter:<br>&nbsp;&nbsp;&nbsp;• **IP Address**: Your printer's IP (e.g., `192.168.1.100`)<br>&nbsp;&nbsp;&nbsp;• **Printer Name**: Friendly name (optional)<br>&nbsp;&nbsp;&nbsp;• **Serial Number**: From printer settings<br>&nbsp;&nbsp;&nbsp;• **Check Code**: From LAN mode settings<br>6. Click **Submit** |
+| **Configuration Options** | After setup, you can adjust settings:<br><br>1. Go to **Settings** → **Devices & Services** → **FlashForge**<br>2. Click **⋮** on your printer → **Configure**<br>3. **Scan Interval**: Update frequency in seconds (5-300, default: 10) |
 
 </div>
 
@@ -449,66 +389,13 @@ entities:
 
 <div align="center">
 
-### Discovery Not Finding Printer
-
-**Problem**: Automatic discovery doesn't detect your printer.
-
-**Solutions**:
-- Ensure printer is on the same network/subnet as Home Assistant
-- Check firewall settings (UDP port 18007 must be open)
-- Verify LAN mode is enabled on the printer
-- Try manual configuration with IP address
-
-</div>
-
-<div align="center">
-
-### Connection Failed During Setup
-
-**Problem**: Setup fails with connection error.
-
-**Solutions**:
-- Verify printer has LAN mode enabled
-- Check the check code is correct (codes can expire)
-- Ensure printer is powered on and connected to network
-- Test API access manually: `http://<PRINTER_IP>:8898/info`
-- Verify serial number matches printer label
-
-</div>
-
-<div align="center">
-
-### Entities Show "Unavailable"
-
-**Problem**: Integration installed but entities are unavailable.
-
-**Solutions**:
-- Check printer is online and reachable
-- Verify credentials are still valid
-- Reload the integration: Settings → Integrations → FlashForge → ⋮ → Reload
-- Check Home Assistant logs for connection errors
-
-</div>
-
-<div align="center">
-
-### Python API Not Installing
-
-**Problem**: Integration fails due to missing flashforge-python-api.
-
-**Solutions**:
-- Verify Home Assistant has internet access
-- Check PyPI is reachable: https://pypi.org/project/flashforge-python-api/
-- Try manual install: `pip install flashforge-python-api` in HA environment
-- Restart Home Assistant after installation
-
-</div>
-
-<div align="center">
-
-### Static IP Recommended
-
-For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes.
+| Issue | Problem | Solutions |
+|-------|---------|-----------|
+| **Discovery Not Finding Printer** | Automatic discovery doesn't detect your printer | • Ensure printer is on the same network/subnet as Home Assistant<br>• Check firewall settings (UDP port 18007 must be open)<br>• Verify LAN mode is enabled on the printer<br>• Try manual configuration with IP address |
+| **Connection Failed During Setup** | Setup fails with connection error | • Verify printer has LAN mode enabled<br>• Check the check code is correct (codes can expire)<br>• Ensure printer is powered on and connected to network<br>• Test API access manually: `http://<PRINTER_IP>:8898/info`<br>• Verify serial number matches printer label |
+| **Entities Show "Unavailable"** | Integration installed but entities are unavailable | • Check printer is online and reachable<br>• Verify credentials are still valid<br>• Reload the integration: Settings → Integrations → FlashForge → ⋮ → Reload<br>• Check Home Assistant logs for connection errors |
+| **Python API Not Installing** | Integration fails due to missing flashforge-python-api | • Verify Home Assistant has internet access<br>• Check PyPI is reachable: https://pypi.org/project/flashforge-python-api/<br>• Try manual install: `pip install flashforge-python-api` in HA environment<br>• Restart Home Assistant after installation |
+| **Static IP Recommended** | - | For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes. |
 
 </div>
 
