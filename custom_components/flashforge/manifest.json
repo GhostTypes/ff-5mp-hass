@@ -8,6 +8,6 @@
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/GhostTypes/ff-5mp-hass/issues",
-  "requirements": ["flashforge-python-api>=1.0.0"],
-  "version": "1.1.0"
+  "requirements": ["flashforge-python-api>=1.0.1"],
+  "version": "1.1.1"
 }
