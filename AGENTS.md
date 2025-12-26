@@ -4,9 +4,9 @@ Working agreement for AI assistants contributing to `ff-5mp-hass`.
 
 ## Project Snapshot
 - **Integration:** FlashForge printers for Home Assistant (HTTP API only).
-- **Current release:** `v1.0.1`.
+- **Current release:** `v1.1.2`.
 - **Entities shipped:** 28 total (18 sensors, 4 binary sensors, 2 switches, 3 buttons, 1 camera).
-- **Key dependency:** `flashforge-python-api>=1.0.0` (see sibling repo `ff-5mp-api-py`).
+- **Key dependency:** `flashforge-python-api>=1.0.2` (see sibling repo `ff-5mp-api-py`).
 - **Primary references:** `CLAUDE.md` (agent workflow), `AGENTS.md` (this playbook), `README.md` (user docs), `CHANGELOG.md`, `homeassistant/README.md`, `HOME_ASSISTANT_DOCS_COMPANION.md`, and `HACS_PUBLISHER_COMPANION.md`.
 
 ## Agent Roles

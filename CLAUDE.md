@@ -3,11 +3,11 @@
 Guidance for AI coding assistants working in this repository.
 
 ## Current State (January 2025)
-- Integration **version 1.1.1** is published and HACS-ready.
+- Integration **version 1.1.2** is published and HACS-ready.
 - Provides a complete Home Assistant experience for FlashForge printers using the **HTTP API only**.
 - Entities shipped: **28 total** (18 sensors, 4 binary sensors, 2 switches, 3 buttons, 1 MJPEG camera).
 - UI config flow supports automatic discovery, manual entry, credential validation, and an adjustable polling interval (5–300 s, default 10 s).
-- Depends on `flashforge-python-api>=1.0.1` from the companion repository `ff-5mp-api-py`.
+- Depends on `flashforge-python-api>=1.0.2` from the companion repository `ff-5mp-api-py`.
 
 ## Development Requirements
 - **Home Assistant Core**: 2025.12.4 (latest stable as of December 2025)
@@ -234,10 +234,17 @@ The local Home Assistant instance runs in **WSL2 only** with the following setup
    - Reserve comments for clarifying non-obvious behavior.
 
 ## Testing & Validation
-- **Local Home Assistant instance**
+- **Development Environment** (`homeassistant/`)
   - **WSL2 only**: `cd homeassistant && source venv/bin/activate && hass -c config`
   - Logs: `homeassistant/config/home-assistant.log` (tail for live debugging: `tail -f homeassistant/config/home-assistant.log`)
   - Access UI: `http://localhost:8123`
+  - Uses editable install of `ff-5mp-api-py` and symlinked integration
+- **Production Test Environment** (`homeassistant-prod/`)
+  - **WSL2 only**: `cd homeassistant-prod && ./start.sh`
+  - Clean install environment for testing HACS installation flow
+  - Uses `.venv` (created with `uv`) instead of `venv`
+  - **NOT tracked in git** (in `.gitignore`) - but accessible when needed
+  - Simulates real user experience (no symlinks, downloads from PyPI)
 - **Quick checklist**
   1. Confirm printer is on, LAN mode enabled, and check code/serial are available.
   2. Install the integration (copy folder or use dev symlink) and restart Home Assistant.
@@ -271,11 +278,24 @@ The local Home Assistant instance runs in **WSL2 only** with the following setup
 4. Tag and publish a GitHub release (`vX.Y.Z`) for HACS distribution.
 5. Ensure README badges (release, HACS status, minimum HA version) stay accurate.
 
+## HACS Installation (for Testing)
+To test the integration as users will experience it:
+1. **Install HACS** in production environment:
+   ```bash
+   cd homeassistant-prod/config
+   sudo apt install unzip  # Required dependency
+   wget -O - https://get.hacs.xyz | bash -
+   ```
+2. **Restart Home Assistant** and complete HACS setup via UI (Settings → Devices & Services → Add Integration → HACS)
+3. **Add custom repository**: In HACS, add `https://github.com/GhostTypes/ff-5mp-hass` as Integration
+4. **Install integration** through HACS UI and test
+
 ## Critical Lessons Learned
 - **WSL2 Discovery**: Requires mirrored networking (`networkingMode=mirrored` in `.wslconfig`) AND Hyper-V firewall rule (`Set-NetFirewallHyperVVMSetting`) to receive UDP responses from printers
 - **Editable Installs**: Both integration (symlinked) and API (`pip install -e`) are editable - changes apply immediately without reinstall
 - **Config Entry Lifecycle**: Always use `ConfigEntryNotReady` for temporary connection failures (HA will retry automatically)
 - **Entity Availability**: Set `available = False` when printer offline (Silver quality requirement)
+- **HACS Testing**: Use `homeassistant-prod/` environment to test real user installation flow (not tracked in git)
 
 ## References
 - **Home Assistant Development**: Use the `home-assistant-dev` skill for all HA integration work

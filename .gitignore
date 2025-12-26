@@ -28,3 +28,4 @@ Thumbs.db
 # Home Assistant
 *.log
 homeassistant/*
+/homeassistant-prod
