@@ -78,7 +78,7 @@ SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:percent-circle",
-        value_fn=lambda data: int(data.print_progress) if data.print_progress is not None else 0,
+        value_fn=lambda data: data.print_progress_int if data.print_progress_int is not None else 0,
     ),
     FlashForgeSensorEntityDescription(
         key="current_file",
@@ -112,11 +112,8 @@ SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = (
     FlashForgeSensorEntityDescription(
         key="remaining_time",
         name="Remaining Time",
-        device_class=SensorDeviceClass.DURATION,
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:timer-sand",
-        value_fn=lambda data: max(0, (data.estimated_time or 0) - (data.print_duration or 0)) if data.estimated_time else 0,
+        value_fn=lambda data: data.print_eta if data.print_eta else "00:00",
     ),
     FlashForgeSensorEntityDescription(
         key="filament_length",

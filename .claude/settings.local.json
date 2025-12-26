@@ -5,7 +5,9 @@
       "mcp__cloudscraper-mcp__scrape_url",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:hacs.xyz)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Skill(home-assistant-dev)",
+      "Bash(./venv/bin/pip:*)"
     ],
     "deny": [],
     "ask": []
