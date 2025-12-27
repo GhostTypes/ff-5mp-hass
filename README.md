@@ -51,7 +51,7 @@
   <tr>
     <td rowspan="3"><b>Control</b></td>
     <td>Switches</td>
-    <td>LED control, camera power (Pro models)</td>
+    <td>LED control</td>
   </tr>
   <tr>
     <td>Select Entities</td>
