@@ -1,0 +1,15 @@
+# Test dependencies for FlashForge integration
+
+# Core testing framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Home Assistant testing
+homeassistant>=2025.12.4
+
+# API library (install from local path or PyPI)
+# For local development: pip install -e C:\Users\Cope\Documents\GitHub\ff-5mp-api-py
+flashforge-python-api>=1.0.2
+
+# Network interface detection (required by discovery)
+netifaces>=0.11.0

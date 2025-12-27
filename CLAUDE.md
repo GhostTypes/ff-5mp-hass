@@ -25,6 +25,11 @@ Guidance for AI coding assistants working in this repository.
 - Standard Python async/HTTP client patterns apply
 - No special HA knowledge required
 
+**Path conventions**:
+- **CRITICAL**: This repository is developed on Windows. Always use Windows-style paths in Bash commands: `C:\Users\Cope\Documents\GitHub\ff-5mp-hass`
+- **NEVER** use Unix-style paths like `/mnt/c/Users/Cope/...` - these will fail
+- WSL2 commands in documentation are for reference only; actual development commands must use Windows paths
+
 Treat this file as the living source of truth for workflows and expectations—update it whenever the process changes.
 
 ## Repository Layout Reference

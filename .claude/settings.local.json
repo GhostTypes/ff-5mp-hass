@@ -7,7 +7,9 @@
       "WebFetch(domain:hacs.xyz)",
       "Bash(git add:*)",
       "Skill(home-assistant-dev)",
-      "Bash(./venv/bin/pip:*)"
+      "Bash(./venv/bin/pip:*)",
+      "Bash(mkdir:*)",
+      "Bash(pytest:*)"
     ],
     "deny": [],
     "ask": []
