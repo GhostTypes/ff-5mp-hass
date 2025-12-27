@@ -16,7 +16,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Home%20Assistant-2024.1.0+-blue.svg?style=for-the-badge&logo=homeassistant&logoColor=white">
+  <img src="https://img.shields.io/badge/HA%20Min-2025.1.0-blue.svg?style=for-the-badge&logo=homeassistant&logoColor=white">
+  <img src="https://img.shields.io/badge/HA%20Tested-2025.12.4-brightgreen.svg?style=for-the-badge&logo=homeassistant&logoColor=white">
   <img src="https://img.shields.io/badge/Python-3.11+-blue.svg?style=for-the-badge&logo=python&logoColor=white">
   <img src="https://img.shields.io/github/downloads/GhostTypes/ff-5mp-hass/total?style=for-the-badge">
 </p>
