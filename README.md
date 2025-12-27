@@ -22,7 +22,7 @@
   <img src="https://img.shields.io/github/downloads/GhostTypes/ff-5mp-hass/total?style=for-the-badge">
 </p>
 
----
+
 
 <div align="center">
   <h2>Features</h2>
@@ -81,7 +81,7 @@
 </table>
 </div>
 
----
+
 
 <div align="center">
   <h2>Supported Hardware</h2>
@@ -95,11 +95,15 @@
   </tr>
   <tr>
     <td>FlashForge Adventurer 5M Series</td>
-    <td>AD5M, AD5M Pro</td>
+    <td>Fully Supported </td>
   </tr>
   <tr>
     <td>FlashForge Adventurer 4</td>
     <td>Fully Supported</td>
+  </tr>
+  <tr>
+    <td>Other</td>
+    <td>Not Supported (Not planned)</td>
   </tr>
 </table>
 </div>
@@ -108,7 +112,7 @@
 <p><i>Model-specific features (LED, filtration, camera) are automatically detected and enabled when available.</i></p>
 </div>
 
----
+
 
 <div align="center">
   <h2>Requirements</h2>
@@ -125,7 +129,6 @@
 
 </div>
 
----
 
 <div align="center">
   <h2>Installation</h2>
@@ -140,7 +143,6 @@
 
 </div>
 
----
 
 <div align="center">
   <h2>Configuration</h2>
@@ -157,7 +159,7 @@
 
 </div>
 
----
+
 
 <div align="center">
   <h2>Available Entities</h2>
@@ -271,7 +273,7 @@
 
 </div>
 
----
+
 
 <div align="center">
   <h2>Usage Examples</h2>
@@ -381,7 +383,7 @@ entities:
   - sensor.flashforge_print_progress
 ```
 
----
+
 
 <div align="center">
   <h2>Troubleshooting</h2>
@@ -399,7 +401,7 @@ entities:
 
 </div>
 
----
+
 
 <div align="center">
   <h2>Related Projects</h2>
@@ -430,7 +432,7 @@ entities:
 </table>
 </div>
 
----
+
 
 <div align="center">
   <h2>License</h2>
@@ -440,7 +442,7 @@ entities:
 <p>This project is licensed under the MIT License - see the <a href="LICENSE">LICENSE</a> file for details.</p>
 </div>
 
----
+
 
 <div align="center">
   <p><b>If you find this integration useful, please star the repository!</b></p>
