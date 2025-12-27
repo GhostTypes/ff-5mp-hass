@@ -118,8 +118,8 @@
 
 | Requirement | Details |
 |-------------|---------|
-| **Home Assistant** | 2024.1.0 or newer |
-| **Python Library** | [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.0.0+ |
+| **Home Assistant** | 2025.1.0 or newer |
+| **Python Library** | [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.0.2+ |
 | **Network** | Local LAN connectivity to printer |
 | **Printer Setup** | LAN mode enabled with check code |
 
@@ -222,8 +222,7 @@
 
 | Entity | Description | Availability |
 |--------|-------------|--------------|
-| `switch.flashforge_led` | Control printer LED lights | Model-dependent |
-| `switch.flashforge_camera` | Control camera power | Pro models only |
+| `switch.flashforge_led` | Control printer LED lights | All Models |
 
 </div>
 
