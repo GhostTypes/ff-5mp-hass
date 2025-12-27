@@ -1,7 +1,11 @@
-"""Shared test fixtures for FlashForge integration tests."""
+"""Shared test fixtures for FlashForge integration tests.
+
+These fixtures are designed for cross-platform unit testing (Windows/WSL/Linux/CI).
+Integration tests requiring Home Assistant should be run in the WSL environment.
+"""
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -89,3 +93,5 @@ def mock_hass():
     hass.config_entries = Mock()
     hass.async_create_task = Mock(side_effect=lambda coro: coro)
     return hass
+
+

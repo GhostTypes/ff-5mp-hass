@@ -5,7 +5,7 @@ Guidance for AI coding assistants working in this repository.
 ## Current State (January 2025)
 - Integration **version 1.1.2** is published and HACS-ready.
 - Provides a complete Home Assistant experience for FlashForge printers using the **HTTP API only**.
-- Entities shipped: **28 total** (18 sensors, 4 binary sensors, 2 switches, 3 buttons, 1 MJPEG camera).
+- Entities shipped: **29 total** (19 sensors, 4 binary sensors, 2 switches, 3 buttons, 1 MJPEG camera).
 - UI config flow supports automatic discovery, manual entry, credential validation, and an adjustable polling interval (5–300 s, default 10 s).
 - Depends on `flashforge-python-api>=1.0.2` from the companion repository `ff-5mp-api-py`.
 
@@ -47,7 +47,7 @@ Treat this file as the living source of truth for workflows and expectations—u
   - Credential validation before config entry creation.
   - Options flow exposes adjustable polling (5–300 s).
 - **Monitoring**
-  - 18 sensors covering status, temperatures, progress, layers, timing, filament metrics.
+  - 19 sensors covering status, temperatures, progress, layers, timing, filament metrics, lifetime stats.
   - 4 binary sensors tracking printing, online, error, and paused states.
   - Entities grouped under a single device with manufacturer/model metadata.
 - **Control**
@@ -70,7 +70,7 @@ Treat this file as the living source of truth for workflows and expectations—u
 - `__init__.py` – Config entry setup, HTTP client initialization, coordinator registration, teardown.
 - `config_flow.py` – Discovery + manual onboarding, credential validation via HTTP, options flow for scan interval.
 - `coordinator.py` – `DataUpdateCoordinator` wrapping `FlashForgeClient.info.get()` with graceful error handling and cleanup.
-- `sensor.py` – 18 sensor entities. Modify the `SENSORS` tuple, translations, and docs together when changing sensors.
+- `sensor.py` – 19 sensor entities. Modify the `SENSORS` tuple, translations, and docs together when changing sensors.
 - `binary_sensor.py` – 4 machine-state binary sensors (printing, online, error, paused).
 - `switch.py` – LED and filtration switches with client capability checks.
 - `button.py` – Pause/resume/cancel commands; request a refresh after each action.
@@ -239,31 +239,98 @@ The local Home Assistant instance runs in **WSL2 only** with the following setup
    - Reserve comments for clarifying non-obvious behavior.
 
 ## Testing & Validation
+
+### Two-Tier Testing Strategy
+
+We use a **two-tier approach** to balance rapid iteration with comprehensive validation:
+
+#### Tier 1: Cross-Platform Unit Tests (Primary - No HA Dependencies)
+
+**What:** Tests business logic without requiring Home Assistant installation.
+
+**Why this approach:**
+- ✅ **Windows compatibility**: Home Assistant requires Unix-only modules (`fcntl`) and cannot install on Windows
+- ✅ **Fast CI**: Avoids installing 500+ MB Home Assistant package, dramatically speeding up CI pipelines
+- ✅ **Rapid iteration**: Tests run in ~1 second on local machines
+- ✅ **Cross-platform development**: Test on Windows natively without WSL
+
+**How it works:**
+- `tests/ha_mocks.py` provides centralized Home Assistant module mocking
+- Stub classes mimic HA's entity descriptions, base classes, enums, and constants
+- Import mocks BEFORE importing integration code to intercept HA dependencies
+- Tests focus on pure Python logic: value extraction, state transformations, utility functions
+
+**Running tests:**
+```bash
+# From repository root (Windows or WSL)
+pytest tests/unit/ -v
+
+# With coverage report
+pytest tests/unit/ --cov=custom_components.flashforge --cov-report=term-missing
+
+# Specific test file
+pytest tests/unit/test_sensor_value_functions.py -v
+```
+
+**Current coverage (101 tests total):**
+- `tests/unit/test_discovery.py` - 18 tests for printer discovery protocol
+- `tests/unit/test_sensor_value_functions.py` - 56 tests for sensor value extraction
+- `tests/unit/test_binary_sensor_value_functions.py` - 19 tests for binary sensor logic
+- `tests/unit/test_util.py` - 8 tests for utility functions
+
+**Test dependencies** (`requirements-test.txt`):
+- Core: `pytest`, `pytest-asyncio`, `pytest-cov`
+- Snapshot testing: `syrupy` (for future use)
+- API library: `flashforge-python-api` (editable install for development)
+- Network: `netifaces` (for discovery tests)
+- **Explicitly excludes** `homeassistant` and `pytest-homeassistant-custom-component` (Unix-only)
+
+#### Tier 2: Integration Tests (Future - WSL/Linux Only)
+
+**What:** Tests requiring full Home Assistant runtime (config flows, coordinator, entity lifecycle).
+
+**When to use:**
+- Testing config flow UI interactions
+- Validating coordinator update cycles
+- Testing entity registration and state updates
+- Verifying service calls and device registry integration
+
+**Where to run:** WSL2 or Linux environments only (in `homeassistant/` dev environment).
+
+**Deferred until:** Integration tests become necessary (e.g., preparing for HACS submission or major refactoring).
+
+### Manual Validation Environments
+
 - **Development Environment** (`homeassistant/`)
   - **WSL2 only**: `cd homeassistant && source venv/bin/activate && hass -c config`
   - Logs: `homeassistant/config/home-assistant.log` (tail for live debugging: `tail -f homeassistant/config/home-assistant.log`)
   - Access UI: `http://localhost:8123`
   - Uses editable install of `ff-5mp-api-py` and symlinked integration
+
 - **Production Test Environment** (`homeassistant-prod/`)
   - **WSL2 only**: `cd homeassistant-prod && ./start.sh`
   - Clean install environment for testing HACS installation flow
   - Uses `.venv` (created with `uv`) instead of `venv`
   - **NOT tracked in git** (in `.gitignore`) - but accessible when needed
   - Simulates real user experience (no symlinks, downloads from PyPI)
-- **Quick checklist**
-  1. Confirm printer is on, LAN mode enabled, and check code/serial are available.
-  2. Install the integration (copy folder or use dev symlink) and restart Home Assistant.
-  3. Add the integration via UI; test both discovery and manual paths.
-  4. Open the created device and verify entities:
-     - Sensors: machine status, nozzle temps/targets, bed temps/targets, progress, file, current/total layers, elapsed/remaining time, filament length/weight, print speed, z offset, move mode, nozzle size, filament type.
-     - Binary sensors: printing, online, error, paused.
-     - Switches: LED and filtration (may show unavailable if unsupported).
-     - Buttons: pause, resume, cancel.
-     - Camera: MJPEG feed reachable.
-  5. Trigger control actions (pause/resume/cancel, switches) and ensure states refresh.
-  6. Observe coordinator error handling by temporarily disconnecting the printer and confirming entities surface availability correctly.
+
+### Manual Testing Checklist
+
+1. Confirm printer is on, LAN mode enabled, and check code/serial are available.
+2. Install the integration (copy folder or use dev symlink) and restart Home Assistant.
+3. Add the integration via UI; test both discovery and manual paths.
+4. Open the created device and verify entities:
+   - Sensors: machine status, nozzle temps/targets, bed temps/targets, progress, file, current/total layers, elapsed/remaining time, filament length/weight, print speed, z offset, nozzle size, filament type, lifetime stats.
+   - Binary sensors: printing, online, error, paused.
+   - Switches: LED and filtration (may show unavailable if unsupported).
+   - Buttons: pause, resume, cancel.
+   - Camera: MJPEG feed reachable.
+5. Trigger control actions (pause/resume/cancel, switches) and ensure states refresh.
+6. Observe coordinator error handling by temporarily disconnecting the printer and confirming entities surface availability correctly.
+
+### Testing Utilities
+
 - **Discovery diagnostics** – `scripts/test_discovery.py` and `scripts/discovery_probe.py` help debug LAN communication without HA.
-- **Automated tests** – None yet. If you add pytest suites, document how to run them and keep them optional for contributors.
 - **Hardware caveat** – Full verification requires a FlashForge printer with LAN mode enabled; simulated runs only confirm flow logic.
 
 ## Implementation Guard Rails
@@ -296,6 +363,8 @@ To test the integration as users will experience it:
 4. **Install integration** through HACS UI and test
 
 ## Critical Lessons Learned
+- **Testing Without Home Assistant**: Use `tests/ha_mocks.py` for cross-platform unit tests. Home Assistant is Unix-only (requires `fcntl`) and cannot install on Windows. Mocking enables Windows development and fast CI without 500+ MB HA installation.
+- **Two-Tier Testing**: Unit tests (Tier 1) validate business logic without HA runtime. Integration tests (Tier 2) require WSL/Linux and are deferred until needed. See TEST_PLAN.md for full strategy.
 - **WSL2 Discovery**: Requires mirrored networking (`networkingMode=mirrored` in `.wslconfig`) AND Hyper-V firewall rule (`Set-NetFirewallHyperVVMSetting`) to receive UDP responses from printers
 - **Editable Installs**: Both integration (symlinked) and API (`pip install -e`) are editable - changes apply immediately without reinstall
 - **Config Entry Lifecycle**: Always use `ConfigEntryNotReady` for temporary connection failures (HA will retry automatically)

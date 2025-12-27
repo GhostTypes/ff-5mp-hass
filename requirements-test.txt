@@ -1,15 +1,21 @@
 # Test dependencies for FlashForge integration
+# These dependencies are cross-platform and work on Windows, WSL, Linux, and CI
 
 # Core testing framework
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
 
-# Home Assistant testing
-homeassistant>=2025.12.4
+# Snapshot testing
+syrupy>=4.0.0
 
 # API library (install from local path or PyPI)
-# For local development: pip install -e C:\Users\Cope\Documents\GitHub\ff-5mp-api-py
+# For local development: uv pip install -e C:\Users\Cope\Documents\GitHub\ff-5mp-api-py
 flashforge-python-api>=1.0.2
 
 # Network interface detection (required by discovery)
 netifaces>=0.11.0
+
+# NOTE: Integration tests requiring Home Assistant must run in WSL/Linux
+# Home Assistant and pytest-homeassistant-custom-component are Unix-only
+# For integration tests: see homeassistant/ directory with WSL setup
