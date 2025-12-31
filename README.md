@@ -156,6 +156,7 @@
 | **Option 1: Automatic Discovery (Recommended)** | 1. Go to **Settings** → **Devices & Services** → **Integrations**<br>2. Click **+ Add Integration**<br>3. Search for **"FlashForge"**<br>4. Select your printer from the discovered list<br>5. Enter your printer's **Check Code**<br>6. Click **Submit** |
 | **Option 2: Manual Configuration** | 1. Go to **Settings** → **Devices & Services** → **Integrations**<br>2. Click **+ Add Integration**<br>3. Search for **"FlashForge"**<br>4. Select **"Configure Manually"**<br>5. Enter:<br>&nbsp;&nbsp;&nbsp;• **IP Address**: Your printer's IP (e.g., `192.168.1.100`)<br>&nbsp;&nbsp;&nbsp;• **Printer Name**: Friendly name (optional)<br>&nbsp;&nbsp;&nbsp;• **Serial Number**: From printer settings<br>&nbsp;&nbsp;&nbsp;• **Check Code**: From LAN mode settings<br>6. Click **Submit** |
 | **Configuration Options** | After setup, you can adjust settings:<br><br>1. Go to **Settings** → **Devices & Services** → **FlashForge**<br>2. Click **⋮** on your printer → **Configure**<br>3. **Scan Interval**: Update frequency in seconds (5-300, default: 10) |
+| **LED Switch Override** | If your printer's LED switch is not detected but you know it is supported, enable **Always show LED switch** in the options. This will force the LED switch to appear regardless of printer capability checks. |
 
 </div>
 
