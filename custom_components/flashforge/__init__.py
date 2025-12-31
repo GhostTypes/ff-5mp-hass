@@ -14,6 +14,7 @@ from .const import (
     CONF_CHECK_CODE,
     CONF_SCAN_INTERVAL,
     CONF_SERIAL_NUMBER,
+    CONF_OVERRIDE_LED_AVAILABILITY,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
@@ -41,6 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     check_code = entry.data[CONF_CHECK_CODE]
     name = entry.data.get(CONF_NAME, "FlashForge Printer")
     scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    override_led_availability = entry.options.get(CONF_OVERRIDE_LED_AVAILABILITY, False)
 
     # Create FlashForge client
     client = FlashForgeClient(
@@ -71,6 +73,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Error validating printer credentials: %s", err)
         await async_close_flashforge_client(client)
         raise ConfigEntryNotReady(f"Error validating printer credentials: {err}") from err
+
+    # This should be a configuration option in the library directly, but for now we set it here
+    if override_led_availability:
+        client.led_control = True
 
     # Create coordinator
     coordinator = FlashForgeDataUpdateCoordinator(

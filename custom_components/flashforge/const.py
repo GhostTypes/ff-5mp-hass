@@ -6,6 +6,7 @@ DOMAIN = "flashforge"
 CONF_SERIAL_NUMBER = "serial_number"
 CONF_CHECK_CODE = "check_code"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_OVERRIDE_LED_AVAILABILITY = "override_led_availability"
 
 # Default values
 DEFAULT_NAME = "FlashForge Printer"

@@ -53,7 +53,8 @@
         "title": "FlashForge Options",
         "description": "Configure options for your FlashForge printer",
         "data": {
-          "scan_interval": "Update Interval (seconds)"
+          "scan_interval": "Update Interval (seconds)",
+          "override_led_availability": "Always show LED switch (override printer capability check)"
         }
       }
     }

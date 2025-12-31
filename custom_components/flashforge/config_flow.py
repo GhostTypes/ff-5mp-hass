@@ -20,6 +20,7 @@ from .const import (
     DEFAULT_NAME,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    CONF_OVERRIDE_LED_AVAILABILITY,
 )
 from .util import async_close_flashforge_client
 
@@ -281,15 +282,15 @@ class FlashForgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> FlashForgeOptionsFlowHandler:
         """Get the options flow for this handler."""
-        return FlashForgeOptionsFlowHandler(config_entry)
+        return FlashForgeOptionsFlowHandler()
 
 
 class FlashForgeOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for FlashForge integration."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        self._conf_app_id: str | None = None
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -308,6 +309,10 @@ class FlashForgeOptionsFlowHandler(config_entries.OptionsFlow):
                             CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                         ),
                     ): vol.All(vol.Coerce(int), vol.Range(min=5, max=300)),
+                    vol.Optional(
+                        CONF_OVERRIDE_LED_AVAILABILITY,
+                        default=self.config_entry.options.get(CONF_OVERRIDE_LED_AVAILABILITY, False),
+                    ): bool,
                 }
             ),
         )
