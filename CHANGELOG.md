@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-03-08
+
+### Changed
+- Moved the LED availability workaround into `flashforge-python-api` client configuration instead of mutating integration state directly
+- Updated dependency to `flashforge-python-api>=1.1.0` for AD5X detection, legacy/A4 TCP improvements, discovery parity, and Adventurer 3 support
+
+### Fixed
+- Preserved the manual LED override for aftermarket LED installs while routing it through the library-level override model used by HACS installs
+- Switched the camera entity to runtime OEM stream detection while keeping camera power control limited to Pro models
+
 ## [1.1.3] - 2025-12-31
 
 ### Added
@@ -112,3 +122,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.1.1]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.1.1
 [1.1.2]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.1.2
 [1.1.3]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.1.3
+[1.1.4]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.1.4

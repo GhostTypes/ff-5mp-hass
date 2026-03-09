@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import logging
 from typing import Any
 
-from flashforge.models import FFMachineInfo, MachineState
+from flashforge.models import FFMachineInfo
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,

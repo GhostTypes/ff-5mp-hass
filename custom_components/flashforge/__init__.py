@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 
-from flashforge import FlashForgeClient
+from flashforge import FlashForgeClient, FiveMClientConnectionOptions
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_IP_ADDRESS, CONF_NAME, Platform
@@ -49,6 +49,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ip_address=ip_address,
         serial_number=serial_number,
         check_code=check_code,
+        options=FiveMClientConnectionOptions(
+            led_control_override=override_led_availability,
+        ),
     )
 
     # Initialize the client via HTTP only
@@ -73,10 +76,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Error validating printer credentials: %s", err)
         await async_close_flashforge_client(client)
         raise ConfigEntryNotReady(f"Error validating printer credentials: {err}") from err
-
-    # This should be a configuration option in the library directly, but for now we set it here
-    if override_led_availability:
-        client.led_control = True
 
     # Create coordinator
     coordinator = FlashForgeDataUpdateCoordinator(

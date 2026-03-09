@@ -26,7 +26,7 @@ Usage:
 import sys
 from dataclasses import dataclass
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 
 # Stub base classes for entities
@@ -48,6 +48,36 @@ class CoordinatorEntity(Entity):
         return cls
 
 
+class DataUpdateCoordinator:
+    """Stub for homeassistant.helpers.update_coordinator.DataUpdateCoordinator."""
+
+    def __init__(self, hass, logger, name: str, update_interval) -> None:
+        """Initialize the coordinator."""
+        self.hass = hass
+        self.logger = logger
+        self.name = name
+        self.update_interval = update_interval
+        self.data = None
+        self.last_update_success = True
+        self.async_request_refresh = AsyncMock()
+
+    def __class_getitem__(cls, item):
+        """Make class subscriptable for type hints like DataUpdateCoordinator[Data]."""
+        return cls
+
+
+class UpdateFailed(Exception):
+    """Stub for homeassistant.helpers.update_coordinator.UpdateFailed."""
+
+
+class ConfigEntryNotReady(Exception):
+    """Stub for homeassistant.exceptions.ConfigEntryNotReady."""
+
+
+class ConfigEntryAuthFailed(Exception):
+    """Stub for homeassistant.exceptions.ConfigEntryAuthFailed."""
+
+
 class SensorEntity(Entity):
     """Stub for homeassistant.components.sensor.SensorEntity."""
 
@@ -64,6 +94,52 @@ class SwitchEntity(Entity):
     """Stub for homeassistant.components.switch.SwitchEntity."""
 
     pass
+
+
+class Camera(Entity):
+    """Stub for homeassistant.components.camera.Camera."""
+
+    pass
+
+
+class MjpegCamera(Camera):
+    """Stub for homeassistant.components.mjpeg.camera.MjpegCamera."""
+
+    def __init__(
+        self,
+        *,
+        name: str | None = None,
+        mjpeg_url: str,
+        still_image_url: str | None,
+        authentication: str | None = None,
+        username: str | None = None,
+        password: str = "",
+        verify_ssl: bool = True,
+        unique_id: str | None = None,
+        device_info: Any | None = None,
+    ) -> None:
+        self._attr_name = name
+        self._mjpeg_url = mjpeg_url
+        self._still_image_url = still_image_url
+        self._authentication = authentication
+        self._username = username
+        self._password = password
+        self._verify_ssl = verify_ssl
+        if unique_id is not None:
+            self._attr_unique_id = unique_id
+        if device_info is not None:
+            self._attr_device_info = device_info
+
+    async def stream_source(self) -> str:
+        return self._mjpeg_url
+
+    async def async_camera_image(
+        self, width: int | None = None, height: int | None = None
+    ) -> bytes | None:
+        return b""
+
+    async def handle_async_mjpeg_stream(self, request):
+        return None
 
 
 class ButtonEntity(Entity):
@@ -166,7 +242,16 @@ def mock_homeassistant():
 
     # Constants module with common values
     const_module = MagicMock()
+    const_module.CONF_IP_ADDRESS = "host"
+    const_module.CONF_NAME = "name"
     const_module.PERCENTAGE = "%"
+
+    class Platform:
+        SENSOR = "sensor"
+        BINARY_SENSOR = "binary_sensor"
+        SWITCH = "switch"
+        BUTTON = "button"
+        CAMERA = "camera"
 
     # UnitOfTime stub
     class UnitOfTime:
@@ -174,11 +259,24 @@ def mock_homeassistant():
         MINUTES = "min"
         HOURS = "h"
 
+    const_module.Platform = Platform
     const_module.UnitOfTime = UnitOfTime
     sys.modules["homeassistant.const"] = const_module
 
     # Config and setup
-    sys.modules["homeassistant.config_entries"] = MagicMock()
+    config_entries_module = MagicMock()
+
+    class ConfigFlow:
+        def __init_subclass__(cls, **kwargs):
+            return super().__init_subclass__()
+
+    class OptionsFlow:
+        pass
+
+    config_entries_module.ConfigFlow = ConfigFlow
+    config_entries_module.OptionsFlow = OptionsFlow
+    config_entries_module.ConfigEntry = object
+    sys.modules["homeassistant.config_entries"] = config_entries_module
     sys.modules["homeassistant.setup"] = MagicMock()
     sys.modules["homeassistant.loader"] = MagicMock()
 
@@ -186,9 +284,12 @@ def mock_homeassistant():
     sys.modules["homeassistant.helpers"] = MagicMock()
     sys.modules["homeassistant.helpers.entity"] = MagicMock()
     sys.modules["homeassistant.helpers.entity_platform"] = MagicMock()
+    sys.modules["homeassistant.helpers.config_validation"] = MagicMock()
 
     update_coordinator_module = MagicMock()
     update_coordinator_module.CoordinatorEntity = CoordinatorEntity
+    update_coordinator_module.DataUpdateCoordinator = DataUpdateCoordinator
+    update_coordinator_module.UpdateFailed = UpdateFailed
     sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator_module
 
     sys.modules["homeassistant.helpers.device_registry"] = MagicMock()
@@ -229,14 +330,32 @@ def mock_homeassistant():
     select_module.SelectEntity = SelectEntity
     sys.modules["homeassistant.components.select"] = select_module
 
-    sys.modules["homeassistant.components.camera"] = MagicMock()
+    camera_module = MagicMock()
+    camera_module.Camera = Camera
+    sys.modules["homeassistant.components.camera"] = camera_module
+    sys.modules["homeassistant.components.mjpeg"] = MagicMock()
+    mjpeg_camera_module = MagicMock()
+    mjpeg_camera_module.MjpegCamera = MjpegCamera
+    sys.modules["homeassistant.components.mjpeg.camera"] = mjpeg_camera_module
 
     # Utilities and exceptions
     sys.modules["homeassistant.util"] = MagicMock()
-    sys.modules["homeassistant.exceptions"] = MagicMock()
+    exceptions_module = MagicMock()
+    exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
+    exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed
+    sys.modules["homeassistant.exceptions"] = exceptions_module
 
     # Data entry flow
     sys.modules["homeassistant.data_entry_flow"] = MagicMock()
+
+    core_module = MagicMock()
+
+    def callback(func):
+        return func
+
+    core_module.callback = callback
+    core_module.HomeAssistant = object
+    sys.modules["homeassistant.core"] = core_module
 
 
 def unmock_homeassistant():

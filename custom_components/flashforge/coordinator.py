@@ -3,14 +3,12 @@ from __future__ import annotations
 
 from datetime import timedelta
 import logging
-from typing import Any
 
 from flashforge import FlashForgeClient
-from flashforge.models import FFMachineInfo, MachineState
+from flashforge.models import FFMachineInfo
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .const import DOMAIN
 from .util import async_close_flashforge_client
@@ -47,6 +45,7 @@ class FlashForgeDataUpdateCoordinator(DataUpdateCoordinator[FFMachineInfo]):
             if machine_info is None:
                 raise UpdateFailed("Failed to retrieve printer status")
 
+            self.client.cache_details(machine_info)
             return machine_info
 
         except Exception as err:
