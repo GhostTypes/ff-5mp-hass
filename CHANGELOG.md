@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.4] - 2026-03-08
 
+### Fixed
+- Registered the filtration select platform so `select.flashforge_filtration_mode` now loads correctly
+- Restricted discovery and setup to supported modern HTTP printers only: AD5X, Adventurer 5M, and Adventurer 5M Pro
+- Corrected the README, support matrix, entity counts, and camera behavior notes for the `1.1.4` release
+
 ### Changed
 - Moved the LED availability workaround into `flashforge-python-api` client configuration instead of mutating integration state directly
-- Updated dependency to `flashforge-python-api>=1.1.0` for AD5X detection, legacy/A4 TCP improvements, discovery parity, and Adventurer 3 support
-
-### Fixed
+- Updated dependency to `flashforge-python-api>=1.1.0` for modern-printer discovery improvements, AD5X detection, and library-level LED override support
 - Preserved the manual LED override for aftermarket LED installs while routing it through the library-level override model used by HACS installs
 - Switched the camera entity to runtime OEM stream detection while keeping camera power control limited to Pro models
 

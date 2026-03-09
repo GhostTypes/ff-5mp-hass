@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from flashforge import FlashForgeClient, FlashForgePrinterDiscovery
+from flashforge import FlashForgeClient, PrinterDiscovery, PrinterModel
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -26,6 +26,12 @@ from .util import async_close_flashforge_client
 
 _LOGGER = logging.getLogger(__name__)
 
+SUPPORTED_PRINTER_MODELS = {
+    PrinterModel.AD5X,
+    PrinterModel.ADVENTURER_5M,
+    PrinterModel.ADVENTURER_5M_PRO,
+}
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required("discovery_mode", default="auto"): vol.In(
@@ -46,6 +52,31 @@ STEP_MANUAL_DATA_SCHEMA = vol.Schema(
 )
 
 
+class UnsupportedPrinterError(ConnectionError):
+    """Raised when the selected printer is outside the integration scope."""
+
+
+def _is_supported_machine_info(machine_info: Any) -> bool:
+    """Return True when the HTTP machine info matches a supported modern printer."""
+    printer_name = (getattr(machine_info, "name", "") or "").upper()
+    return bool(
+        getattr(machine_info, "is_ad5x", False)
+        or "ADVENTURER 5M" in printer_name
+        or "ADVENTURER5M" in printer_name
+        or printer_name.startswith("AD5M")
+    )
+
+
+def _is_supported_discovered_printer(printer: Any) -> bool:
+    """Return True when a discovery result matches a supported modern printer."""
+    return getattr(printer, "model", None) in SUPPORTED_PRINTER_MODELS
+
+
+def _build_printer_label(printer: dict[str, Any]) -> str:
+    """Build a stable user-facing discovery label."""
+    return f"{printer[CONF_NAME]} ({printer[CONF_IP_ADDRESS]})"
+
+
 async def validate_connection(
     hass: HomeAssistant, data: dict[str, Any]
 ) -> dict[str, Any]:
@@ -62,12 +93,17 @@ async def validate_connection(
         if machine_info is None:
             raise ConnectionError("Failed to retrieve printer information")
 
+        # Cache details for consistency with the core client
+        client.cache_details(machine_info)
+
+        if not _is_supported_machine_info(machine_info):
+            raise UnsupportedPrinterError(
+                "Only AD5X, Adventurer 5M, and Adventurer 5M Pro printers are supported"
+            )
+
         # Validate credentials using the product endpoint (HTTP only)
         if not await client.send_product_command():
             raise ConnectionError("Printer rejected the provided credentials")
-
-        # Cache details for consistency with the core client
-        client.cache_details(machine_info)
 
         return {
             "title": data.get(CONF_NAME, DEFAULT_NAME),
@@ -115,19 +151,38 @@ class FlashForgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             # Perform discovery
             try:
-                discovery = FlashForgePrinterDiscovery()
-                printers = await discovery.discover_printers_async(timeout_ms=5000)
+                discovery = PrinterDiscovery()
+                printers = await discovery.discover()
 
                 if not printers:
                     errors["base"] = "no_printers_found"
                 else:
+                    supported_printers = [
+                        printer for printer in printers if _is_supported_discovered_printer(printer)
+                    ]
+
+                    if not supported_printers:
+                        errors["base"] = "unsupported_printers_found"
+                        return self.async_show_form(
+                            step_id="discovery",
+                            data_schema=STEP_DISCOVERY_SCHEMA,
+                            errors=errors,
+                        )
+
                     self.discovered_printers = [
                         {
                             CONF_NAME: printer.name,
                             CONF_IP_ADDRESS: printer.ip_address,
                             CONF_SERIAL_NUMBER: printer.serial_number,
+                            "model": printer.model.value,
+                            "selection_label": _build_printer_label(
+                                {
+                                    CONF_NAME: printer.name,
+                                    CONF_IP_ADDRESS: printer.ip_address,
+                                }
+                            ),
                         }
-                        for printer in printers
+                        for printer in supported_printers
                     ]
 
                     # If only one printer found, auto-select it
@@ -162,9 +217,13 @@ class FlashForgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle selection from multiple discovered printers."""
         if user_input is not None:
-            selected_name = user_input["printer"]
+            selected_label = user_input["printer"]
             selected_printer = next(
-                (p for p in self.discovered_printers if p[CONF_NAME] == selected_name),
+                (
+                    p
+                    for p in self.discovered_printers
+                    if p["selection_label"] == selected_label
+                ),
                 None,
             )
             if selected_printer:
@@ -173,7 +232,9 @@ class FlashForgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_credentials()
 
         # Create list of printer names for selection
-        printer_names = {p[CONF_NAME]: p[CONF_NAME] for p in self.discovered_printers}
+        printer_names = {
+            p["selection_label"]: p["selection_label"] for p in self.discovered_printers
+        }
 
         return self.async_show_form(
             step_id="select_printer",
@@ -215,6 +276,8 @@ class FlashForgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     },
                 )
 
+            except UnsupportedPrinterError:
+                errors["base"] = "unsupported_printer"
             except ConnectionError:
                 errors["base"] = "cannot_connect"
             except Exception as err:
@@ -264,6 +327,8 @@ class FlashForgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     },
                 )
 
+            except UnsupportedPrinterError:
+                errors["base"] = "unsupported_printer"
             except ConnectionError:
                 errors["base"] = "cannot_connect"
             except Exception as err:

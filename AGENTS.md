@@ -4,15 +4,17 @@ Working agreement for AI assistants contributing to `ff-5mp-hass`.
 
 ## Project Snapshot
 - **Integration:** FlashForge printers for Home Assistant (HTTP API only).
-- **Current release:** `v1.1.2`.
-- **Entities shipped:** 28 total (18 sensors, 4 binary sensors, 2 switches, 3 buttons, 1 camera).
-- **Key dependency:** `flashforge-python-api>=1.0.2` (see sibling repo `ff-5mp-api-py`).
+- **Current release:** `v1.1.4`.
+- **Supported printers:** `AD5X`, `Adventurer 5M`, and `Adventurer 5M Pro` only.
+- **Entities shipped:** 31 total (19 sensors, 4 binary sensors, 2 switches, 1 select, 4 buttons, 1 camera).
+- **Key dependency:** `flashforge-python-api>=1.1.0` (see sibling repo `ff-5mp-api-py`).
 - **Primary references:** `CLAUDE.md` (agent workflow), `AGENTS.md` (this playbook), `README.md` (user docs), `CHANGELOG.md`, `homeassistant/README.md`, `HOME_ASSISTANT_DOCS_COMPANION.md`, and `HACS_PUBLISHER_COMPANION.md`.
 
 ## Agent Roles
 - **Coding Agents**
   - Implement or refine integration logic in `custom_components/flashforge/`.
   - Uphold async patterns; rely on `FlashForgeClient` HTTP endpoints and coordinator-managed state.
+  - Keep the integration scoped to supported modern LAN mode HTTP printers only.
   - Mirror logic changes in translations and documentation.
   - Coordinate with Documentation/Test agents when feature surface changes.
 - **Documentation Agents**
@@ -59,9 +61,10 @@ Working agreement for AI assistants contributing to `ff-5mp-hass`.
 3. **Entities** – On the device page verify:
    - Sensors: machine status, nozzle temps/targets, bed temps/targets, progress, file, current/total layers, elapsed/remaining time, filament length/weight, print speed, z offset, move mode, nozzle size, filament type.
    - Binary sensors: printing, online, error, paused.
-   - Switches: LED and filtration (may show unavailable if unsupported).
-   - Buttons: pause, resume, cancel.
-   - Camera: MJPEG stream available.
+   - Switches: LED and camera power (may show unavailable if unsupported).
+   - Select: filtration mode (may show unavailable if unsupported).
+   - Buttons: pause, resume, cancel, clear status.
+   - Camera: entity exists and becomes available when the printer reports an OEM stream URL.
 4. **Controls** – Exercise switches and buttons; confirm state refreshes and coordinator remains healthy.
 5. **Resilience** – Temporarily disrupt connectivity (e.g., disable LAN mode) and confirm graceful error handling and recovery in Home Assistant logs.
 6. **Discovery Scripts** – When networking changes, run `scripts/test_discovery.py` or `scripts/discovery_probe.py` to confirm UDP discovery continues to succeed.

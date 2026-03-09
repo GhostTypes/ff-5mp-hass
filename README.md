@@ -1,6 +1,6 @@
 <div align="center">
   <h1>FlashForge 3D Printer Integration for Home Assistant</h1>
-  <p>A modern Home Assistant custom integration for FlashForge 3D printers using the HTTP API for reliable, real-time monitoring and control.</p>
+  <p>A Home Assistant custom integration for modern FlashForge printers using the local HTTP API in LAN mode for reliable, real-time monitoring and control.</p>
 </div>
 
 <p align="center">
@@ -37,7 +37,7 @@
   </tr>
   <tr>
     <td rowspan="3"><b>Monitoring</b></td>
-    <td>18 Sensors</td>
+    <td>19 Sensors</td>
     <td>Real-time temperature monitoring, print progress, filament tracking, lifetime statistics</td>
   </tr>
   <tr>
@@ -54,12 +54,12 @@
     <td>LED control, plus Pro-only camera power toggle</td>
   </tr>
   <tr>
-    <td>Select Entities</td>
+    <td>Select Entity</td>
     <td>Filtration mode control (Off/Internal/External)</td>
   </tr>
   <tr>
-    <td>Buttons</td>
-    <td>Pause, resume, cancel print jobs, and clear status directly from Home Assistant</td>
+    <td>4 Buttons</td>
+    <td>Pause, resume, cancel print jobs, and clear printer status directly from Home Assistant</td>
   </tr>
   <tr>
     <td rowspan="4"><b>Architecture</b></td>
@@ -94,22 +94,27 @@
     <th>Support Status</th>
   </tr>
   <tr>
-    <td>FlashForge Adventurer 5M Series</td>
-    <td>Fully Supported </td>
+    <td>FlashForge Adventurer 5M</td>
+    <td>Supported</td>
   </tr>
   <tr>
-    <td>FlashForge Adventurer 4</td>
-    <td>Fully Supported</td>
+    <td>FlashForge Adventurer 5M Pro</td>
+    <td>Supported</td>
   </tr>
   <tr>
-    <td>Other</td>
-    <td>Not Supported (Not planned)</td>
+    <td>FlashForge AD5X</td>
+    <td>Supported</td>
+  </tr>
+  <tr>
+    <td>Legacy TCP-only models (including Adventurer 4)</td>
+    <td>Not Supported</td>
   </tr>
 </table>
 </div>
 
 <div align="center">
-<p><i>Feature availability is detected at runtime. The camera entity appears when the printer reports an active OEM stream URL; the camera power switch remains Pro-only.</i></p>
+<p><i>Feature availability is detected at runtime. The camera entity is always created, but it is only available when the printer reports an active OEM stream URL. The camera power switch remains Pro-only.</i></p>
+<p><i>This integration does not support legacy TCP-only printers.</i></p>
 </div>
 
 
@@ -125,7 +130,7 @@
 | **Home Assistant** | 2025.1.0 or newer |
 | **Python Library** | [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.1.0+ |
 | **Network** | Local LAN connectivity to printer |
-| **Printer Setup** | LAN mode enabled with check code |
+| **Printer Setup** | LAN mode enabled with serial number and check code |
 
 </div>
 
@@ -153,7 +158,7 @@
 | Step | Instructions |
 |------|--------------|
 | **Prerequisites: Enable LAN Mode** | Before adding the integration, you must enable LAN mode on your FlashForge printer:<br><br>1. On the printer touchscreen, go to **Settings** → **Network** → **LAN Mode**<br>2. Enable LAN mode<br>3. Note the **Check Code** (8-digit code) - you'll need this for setup<br><br>[Video Tutorial](https://www.youtube.com/watch?v=krdEGccZuKo) |
-| **Option 1: Automatic Discovery (Recommended)** | 1. Go to **Settings** → **Devices & Services** → **Integrations**<br>2. Click **+ Add Integration**<br>3. Search for **"FlashForge"**<br>4. Select your printer from the discovered list<br>5. Enter your printer's **Check Code**<br>6. Click **Submit** |
+| **Option 1: Automatic Discovery (Recommended)** | 1. Go to **Settings** → **Devices & Services** → **Integrations**<br>2. Click **+ Add Integration**<br>3. Search for **"FlashForge"**<br>4. Select your AD5X, Adventurer 5M, or Adventurer 5M Pro from the discovered list<br>5. Enter your printer's **Check Code**<br>6. Click **Submit** |
 | **Option 2: Manual Configuration** | 1. Go to **Settings** → **Devices & Services** → **Integrations**<br>2. Click **+ Add Integration**<br>3. Search for **"FlashForge"**<br>4. Select **"Configure Manually"**<br>5. Enter:<br>&nbsp;&nbsp;&nbsp;• **IP Address**: Your printer's IP (e.g., `192.168.1.100`)<br>&nbsp;&nbsp;&nbsp;• **Printer Name**: Friendly name (optional)<br>&nbsp;&nbsp;&nbsp;• **Serial Number**: From printer settings<br>&nbsp;&nbsp;&nbsp;• **Check Code**: From LAN mode settings<br>6. Click **Submit** |
 | **Configuration Options** | After setup, you can adjust settings:<br><br>1. Go to **Settings** → **Devices & Services** → **FlashForge**<br>2. Click **⋮** on your printer → **Configure**<br>3. **Scan Interval**: Update frequency in seconds (5-300, default: 10) |
 | **LED Switch Override** | If your printer's LED switch is not detected but you know it is supported, enable **Always show LED switch** in the options. This will force the LED switch to appear regardless of printer capability checks. |
@@ -398,7 +403,7 @@ entities:
 | **Discovery Not Finding Printer** | Automatic discovery doesn't detect your printer | • Ensure printer is on the same network/subnet as Home Assistant<br>• Check firewall settings (UDP port 18007 must be open)<br>• Verify LAN mode is enabled on the printer<br>• Try manual configuration with IP address |
 | **Connection Failed During Setup** | Setup fails with connection error | • Verify printer has LAN mode enabled<br>• Check the check code is correct (codes can expire)<br>• Ensure printer is powered on and connected to network<br>• Test API access manually: `http://<PRINTER_IP>:8898/info`<br>• Verify serial number matches printer label |
 | **Entities Show "Unavailable"** | Integration installed but entities are unavailable | • Check printer is online and reachable<br>• Verify credentials are still valid<br>• Reload the integration: Settings → Integrations → FlashForge → ⋮ → Reload<br>• Check Home Assistant logs for connection errors |
-| **Camera Entity Unavailable** | The camera entity does not appear or shows unavailable | • The printer only exposes the camera entity when it reports an active OEM camera stream URL<br>• Verify the OEM camera is installed and enabled on the printer<br>• The `switch.flashforge_camera` power control remains Pro-only |
+| **Camera Entity Unavailable** | The camera entity shows unavailable | • The camera entity is always created, but it only becomes available when the printer reports an active OEM camera stream URL<br>• Verify the OEM camera is installed and enabled on the printer<br>• The `switch.flashforge_camera` power control remains Pro-only |
 | **Python API Not Installing** | Integration fails due to missing flashforge-python-api | • Verify Home Assistant has internet access<br>• Check PyPI is reachable: https://pypi.org/project/flashforge-python-api/<br>• Try manual install: `pip install flashforge-python-api` in HA environment<br>• Restart Home Assistant after installation |
 | **Static IP Recommended** | - | For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes. |
 

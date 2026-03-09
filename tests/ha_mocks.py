@@ -228,6 +228,7 @@ class SelectEntityDescription:
     key: str = ""
     name: str | None = None
     icon: str | None = None
+    options: list[str] | None = None
 
 
 def mock_homeassistant():
@@ -250,6 +251,7 @@ def mock_homeassistant():
         SENSOR = "sensor"
         BINARY_SENSOR = "binary_sensor"
         SWITCH = "switch"
+        SELECT = "select"
         BUTTON = "button"
         CAMERA = "camera"
 

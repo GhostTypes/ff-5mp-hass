@@ -10,7 +10,7 @@
       },
       "discovery": {
         "title": "Discovering FlashForge Printers",
-        "description": "Searching for FlashForge printers on your network..."
+        "description": "Searching for supported LAN mode printers on your network..."
       },
       "select_printer": {
         "title": "Select Printer",
@@ -28,7 +28,7 @@
       },
       "manual": {
         "title": "Manual Configuration",
-        "description": "Enter your FlashForge printer details manually",
+        "description": "Enter your AD5X, Adventurer 5M, or Adventurer 5M Pro details manually",
         "data": {
           "name": "Printer Name",
           "ip_address": "IP Address",
@@ -40,7 +40,9 @@
     "error": {
       "cannot_connect": "Failed to connect to the printer. Please check the IP address and credentials.",
       "no_printers_found": "No FlashForge printers found on the network. Please use manual configuration.",
+      "unsupported_printers_found": "Only AD5X, Adventurer 5M, and Adventurer 5M Pro printers are supported by this integration.",
       "discovery_failed": "Failed to discover printers. Please use manual configuration.",
+      "unsupported_printer": "Only AD5X, Adventurer 5M, and Adventurer 5M Pro printers are supported by this integration.",
       "unknown": "An unexpected error occurred. Please try again."
     },
     "abort": {
