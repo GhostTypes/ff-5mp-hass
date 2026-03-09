@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   release:
@@ -23,19 +23,17 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          # Extract the section for this version from CHANGELOG.md
           awk "/## \[${VERSION}\]/,/## \[/{if(/## \[${VERSION}\]/)next;if(/## \[/)exit;print}" CHANGELOG.md > release_notes.md
 
-          # Add installation instructions at the end
           cat >> release_notes.md << 'EOF'
 
           ---
 
-          ## 📦 Installation
+          ## Installation
 
           ### Via HACS (Recommended)
-          1. Open HACS → Integrations
-          2. Click ⋮ → Custom repositories
+          1. Open HACS -> Integrations
+          2. Click the menu -> Custom repositories
           3. Add: `https://github.com/GhostTypes/ff-5mp-hass`
           4. Category: Integration
           5. Search "FlashForge" and install
