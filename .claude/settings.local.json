@@ -9,7 +9,8 @@
       "Skill(home-assistant-dev)",
       "Bash(./venv/bin/pip:*)",
       "Bash(mkdir:*)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []
