@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.1.5] - 2026-03-21
+
+### Added
+- Intelligent OEM camera fallback probing for printers that omit `camera_stream_url` from the HTTP `/detail` response
+- Coordinator coverage to verify fallback probing only runs when firmware does not already report a stream URL
+
+### Fixed
+- Updated the Home Assistant dependency floor to `flashforge-python-api>=1.2.0`, which is now published and includes the camera fallback probe implementation
+- Restored automatic camera availability for OEM cameras when firmware leaves the stream URL empty but the standard `http://<printer-ip>:8080/?action=stream` endpoint is reachable
+
 ## [1.1.4] - 2026-03-08
 
 ### Fixed
@@ -120,6 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FlashForge Adventurer 5M Series
 - FlashForge Adventurer 4
 
+[Unreleased]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.1.5...HEAD
+[1.1.5]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.1.4...v1.1.5
 [1.0.0]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.0.0
 [1.0.1]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.0.1
 [1.1.0]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.1.0

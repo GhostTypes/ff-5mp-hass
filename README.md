@@ -46,7 +46,7 @@
   </tr>
   <tr>
     <td>Live Camera Feed</td>
-    <td>MJPEG stream auto-detected from the printer-reported camera stream URL</td>
+    <td>MJPEG stream auto-detected from the printer-reported camera stream URL or the standard OEM fallback endpoint when firmware omits it</td>
   </tr>
   <tr>
     <td rowspan="3"><b>Control</b></td>
@@ -113,7 +113,7 @@
 </div>
 
 <div align="center">
-<p><i>Feature availability is detected at runtime. The camera entity is always created, but it is only available when the printer reports an active OEM stream URL. The camera power switch remains Pro-only.</i></p>
+<p><i>Feature availability is detected at runtime. The camera entity is always created, and it becomes available when the printer reports an active OEM stream URL or the standard OEM fallback stream endpoint responds. The camera power switch remains Pro-only.</i></p>
 <p><i>This integration does not support legacy TCP-only printers.</i></p>
 </div>
 
@@ -128,7 +128,7 @@
 | Requirement | Details |
 |-------------|---------|
 | **Home Assistant** | 2025.1.0 or newer |
-| **Python Library** | [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.1.0+ |
+| **Python Library** | [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.2.0+ |
 | **Network** | Local LAN connectivity to printer |
 | **Printer Setup** | LAN mode enabled with serial number and check code |
 
@@ -403,7 +403,7 @@ entities:
 | **Discovery Not Finding Printer** | Automatic discovery doesn't detect your printer | • Ensure printer is on the same network/subnet as Home Assistant<br>• Check firewall settings (UDP port 18007 must be open)<br>• Verify LAN mode is enabled on the printer<br>• Try manual configuration with IP address |
 | **Connection Failed During Setup** | Setup fails with connection error | • Verify printer has LAN mode enabled<br>• Check the check code is correct (codes can expire)<br>• Ensure printer is powered on and connected to network<br>• Test API access manually: `http://<PRINTER_IP>:8898/info`<br>• Verify serial number matches printer label |
 | **Entities Show "Unavailable"** | Integration installed but entities are unavailable | • Check printer is online and reachable<br>• Verify credentials are still valid<br>• Reload the integration: Settings → Integrations → FlashForge → ⋮ → Reload<br>• Check Home Assistant logs for connection errors |
-| **Camera Entity Unavailable** | The camera entity shows unavailable | • The camera entity is always created, but it only becomes available when the printer reports an active OEM camera stream URL<br>• Verify the OEM camera is installed and enabled on the printer<br>• The `switch.flashforge_camera` power control remains Pro-only |
+| **Camera Entity Unavailable** | The camera entity shows unavailable | • The camera entity is always created, but it only becomes available when the printer reports an active OEM camera stream URL or the standard OEM fallback stream endpoint responds<br>• Verify the OEM camera is installed and enabled on the printer<br>• The `switch.flashforge_camera` power control remains Pro-only |
 | **Python API Not Installing** | Integration fails due to missing flashforge-python-api | • Verify Home Assistant has internet access<br>• Check PyPI is reachable: https://pypi.org/project/flashforge-python-api/<br>• Try manual install: `pip install flashforge-python-api` in HA environment<br>• Restart Home Assistant after installation |
 | **Static IP Recommended** | - | For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes. |
 
