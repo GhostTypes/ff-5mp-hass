@@ -46,6 +46,12 @@ class FlashForgeDataUpdateCoordinator(DataUpdateCoordinator[FFMachineInfo]):
                 raise UpdateFailed("Failed to retrieve printer status")
 
             self.client.cache_details(machine_info)
+
+            if not getattr(machine_info, "camera_stream_url", ""):
+                detected_camera_stream = await self.client.detect_camera_stream()
+                if detected_camera_stream:
+                    machine_info.camera_stream_url = detected_camera_stream  # type: ignore[attr-defined]
+
             return machine_info
 
         except Exception as err:

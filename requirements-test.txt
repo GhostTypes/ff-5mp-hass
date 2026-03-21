@@ -11,7 +11,7 @@ syrupy>=4.0.0
 
 # API library (install from local path or PyPI)
 # For local development: uv pip install -e C:\Users\Cope\Documents\GitHub\ff-5mp-api-py
-flashforge-python-api>=1.1.0
+flashforge-python-api>=1.2.0
 
 # Network interface detection (required by discovery)
 netifaces>=0.11.0
