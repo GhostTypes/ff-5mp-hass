@@ -26,28 +26,27 @@ jobs:
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           awk "/## \[${VERSION}\]/,/## \[/{if(/## \[${VERSION}\]/)next;if(/## \[/)exit;print}" CHANGELOG.md > release_notes.md
-
-          cat >> release_notes.md << EOF
----
-
-## Installation
-
-### Via HACS (Recommended)
-1. Open HACS -> Integrations
-2. Click the menu -> Custom repositories
-3. Add: \`https://github.com/GhostTypes/ff-5mp-hass\`
-4. Category: Integration
-5. Search "FlashForge" and install
-
-### Manual Installation
-1. Download \`Source code (zip)\` below
-2. Extract \`custom_components/flashforge/\` folder
-3. Copy to your Home Assistant \`config/custom_components/\` directory
-4. Restart Home Assistant
-
-**README**: https://github.com/GhostTypes/ff-5mp-hass/blob/v${VERSION}/README.md
-**Changelog**: https://github.com/GhostTypes/ff-5mp-hass/blob/v${VERSION}/CHANGELOG.md
-EOF
+          {
+          echo "---"
+          echo ""
+          echo "## Installation"
+          echo ""
+          echo "### Via HACS (Recommended)"
+          echo "1. Open HACS -> Integrations"
+          echo "2. Click the menu -> Custom repositories"
+          echo '3. Add: `https://github.com/GhostTypes/ff-5mp-hass`'
+          echo "4. Category: Integration"
+          echo '5. Search "FlashForge" and install'
+          echo ""
+          echo "### Manual Installation"
+          echo '1. Download `Source code (zip)` below'
+          echo '2. Extract `custom_components/flashforge/` folder'
+          echo '3. Copy to your Home Assistant `config/custom_components/` directory'
+          echo "4. Restart Home Assistant"
+          echo ""
+          echo "**README**: https://github.com/GhostTypes/ff-5mp-hass/blob/v${VERSION}/README.md"
+          echo "**Changelog**: https://github.com/GhostTypes/ff-5mp-hass/blob/v${VERSION}/CHANGELOG.md"
+          } >> release_notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
