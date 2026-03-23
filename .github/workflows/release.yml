@@ -25,7 +25,7 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          awk "/## \[${VERSION}\]/,/## \[/{if(/## \[${VERSION}\]/)next;if(/## \[/)exit;print}" CHANGELOG.md > release_notes.md
+          tr -d '\r' < CHANGELOG.md | awk "/## \[${VERSION}\]/,/## \[/{if(/## \[${VERSION}\]/)next;if(/## \[/)exit;print}" > release_notes.md
           {
           echo "---"
           echo ""
