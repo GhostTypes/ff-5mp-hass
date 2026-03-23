@@ -25,43 +25,36 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -vx "v${VERSION}" | head -n 1 || true)
           awk "/## \[${VERSION}\]/,/## \[/{if(/## \[${VERSION}\]/)next;if(/## \[/)exit;print}" CHANGELOG.md > release_notes.md
 
-          cat >> release_notes.md << 'EOF'
+          cat >> release_notes.md << EOF
+---
 
-          ---
+## Installation
 
-          ## Installation
+### Via HACS (Recommended)
+1. Open HACS -> Integrations
+2. Click the menu -> Custom repositories
+3. Add: \`https://github.com/GhostTypes/ff-5mp-hass\`
+4. Category: Integration
+5. Search "FlashForge" and install
 
-          ### Via HACS (Recommended)
-          1. Open HACS -> Integrations
-          2. Click the menu -> Custom repositories
-          3. Add: `https://github.com/GhostTypes/ff-5mp-hass`
-          4. Category: Integration
-          5. Search "FlashForge" and install
+### Manual Installation
+1. Download \`Source code (zip)\` below
+2. Extract \`custom_components/flashforge/\` folder
+3. Copy to your Home Assistant \`config/custom_components/\` directory
+4. Restart Home Assistant
 
-          ### Manual Installation
-          1. Download `Source code (zip)` below
-          2. Extract `custom_components/flashforge/` folder
-          3. Copy to your Home Assistant `config/custom_components/` directory
-          4. Restart Home Assistant
-
-          **README**: https://github.com/GhostTypes/ff-5mp-hass/blob/vVERSION_PLACEHOLDER/README.md
-          **Changelog**: https://github.com/GhostTypes/ff-5mp-hass/blob/vVERSION_PLACEHOLDER/CHANGELOG.md
-          EOF
-
-          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" release_notes.md
-
-          if [ -n "$PREVIOUS_TAG" ]; then
-            echo "**Compare**: https://github.com/GhostTypes/ff-5mp-hass/compare/${PREVIOUS_TAG}...v${VERSION}" >> release_notes.md
-          fi
+**README**: https://github.com/GhostTypes/ff-5mp-hass/blob/v${VERSION}/README.md
+**Changelog**: https://github.com/GhostTypes/ff-5mp-hass/blob/v${VERSION}/CHANGELOG.md
+EOF
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           name: "v${{ steps.get_version.outputs.VERSION }}"
           body_path: release_notes.md
+          generate_release_notes: true
           draft: false
           prerelease: false
         env:
