@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-03-23
+
+### Fixed
+- Fixed AD5X entities going unavailable while printing due to `currentPrintSpeed` / `printSpeedAdjust` Pydantic validation rejecting values above 200 (AD5X reports up to 500)
+- Fixed HTTP connection churn caused by per-request `aiohttp.ClientSession()` creation across all API control modules — now uses a shared session with proper timeout handling
+- Fixed intermittent timeouts during print operations by increasing the default HTTP timeout from 5s to 15s
+- Updated dependency to `flashforge-python-api>=1.2.1` which includes all of the above upstream fixes (contributed by @spawnegit in [ff-5mp-api-py#12](https://github.com/GhostTypes/ff-5mp-api-py/pull/12))
+
 ## [1.1.5] - 2026-03-21
 
 ### Added
@@ -132,7 +140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FlashForge Adventurer 5M Series
 - FlashForge Adventurer 4
 
-[Unreleased]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.1.5...HEAD
+[Unreleased]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.1.6...HEAD
+[1.1.6]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.1.4...v1.1.5
 [1.0.0]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.0.0
 [1.0.1]: https://github.com/GhostTypes/ff-5mp-hass/releases/tag/v1.0.1
