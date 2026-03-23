@@ -25,7 +25,17 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          tr -d '\r' < CHANGELOG.md | awk "/## \[${VERSION}\]/,/## \[/{if(/## \[${VERSION}\]/)next;if(/## \[/)exit;print}" > release_notes.md
+
+          # Extract changelog section (same approach as ff-5mp-api-py, with CRLF handling)
+          CHANGELOG=$(tr -d '\r' < CHANGELOG.md | awk "/^## \[$VERSION\]/{found=1; next} /^## \[/{if(found) exit} found{print}")
+
+          if [ -z "$CHANGELOG" ]; then
+            echo "Warning: No changelog entry found for version $VERSION"
+            CHANGELOG="No changelog entry found. See [CHANGELOG.md](https://github.com/GhostTypes/ff-5mp-hass/blob/main/CHANGELOG.md) for details."
+          fi
+
+          # Write changelog + installation instructions to release notes
+          echo "$CHANGELOG" > release_notes.md
           {
           echo "---"
           echo ""
