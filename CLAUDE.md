@@ -15,6 +15,8 @@ Guidance for AI coding assistants working in this repository.
 - **Platform**: WSL2 on Windows (required for local testing with mirrored networking)
 - **API Library**: `ff-5mp-api-py` installed in editable mode for live development
 
+> **TODO (next session):** The local WSL dev sandbox under `homeassistant/` is still on Python 3.13 + HA 2025.12.4. `scripts/setup-dev.sh` has been updated to target Python 3.14 + HA 2026.4.2 (the current floor for HA Core, since 2026.4.x requires Python 3.14.2+) and will auto-recreate the stale venv on first run. Next time work resumes here: install `python3.14` in WSL via deadsnakes, re-run `bash scripts/setup-dev.sh`, verify HA starts and the integration loads, then update this section + the WSL2 walkthrough below to reflect the new baseline.
+
 ## AI Development Guidelines
 **When working on Home Assistant integration code** (anything in `custom_components/flashforge/`):
 - **ALWAYS** invoke the `home-assistant-dev` skill for guidance on entity platforms, config flows, testing, quality requirements, and HACS publishing

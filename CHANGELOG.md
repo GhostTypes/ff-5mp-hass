@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.7] - 2026-04-27
+
+### Fixed
+- Resolved "Config flow could not be loaded: Invalid handler specified" on Home Assistant 2026.4.x / Python 3.14 ([#10](https://github.com/GhostTypes/ff-5mp-hass/issues/10)). Root cause: the upstream `flashforge-python-api` depended on `netifaces`, which is source-only on PyPI and has no Python 3.14 wheel — install failed inside the HA environment, the integration's top-level `from flashforge import ...` raised `ImportError`, and HA reported the generic invalid-handler error for both auto-discovery and manual setup paths.
+- Bumped `flashforge-python-api` requirement to `>=1.2.2`, which replaces `netifaces` with the pure-Python `ifaddr` library (already a transitive dependency of Home Assistant via `zeroconf`).
+
 ## [1.1.6] - 2026-03-23
 
 ### Fixed
