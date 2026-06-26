@@ -68,6 +68,7 @@ def _is_supported_detail(detail: Any) -> bool:
         or "ADVENTURER5M" in printer_name
         or printer_name.startswith("AD5M")
         or printer_name == "AD5X"
+        or "CREATOR 5 PRO" in printer_name
     )
 
 
@@ -98,7 +99,7 @@ async def validate_connection(
 
         if not _is_supported_detail(detail_response.detail):
             raise UnsupportedPrinterError(
-                "Only AD5X, Adventurer 5M, and Adventurer 5M Pro printers are supported"
+                "Only AD5X, Adventurer 5M, Adventurer 5M Pro, and Creator 5 Pro printers are supported"
             )
 
         machine_info = await client.info.get()

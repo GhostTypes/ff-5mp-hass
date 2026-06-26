@@ -25,6 +25,8 @@ Usage:
 """
 import sys
 from dataclasses import dataclass
+from datetime import UTC
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -391,7 +393,9 @@ def mock_homeassistant():
     sys.modules["homeassistant.components.mjpeg.camera"] = mjpeg_camera_module
 
     # Utilities and exceptions
-    sys.modules["homeassistant.util"] = MagicMock()
+    util_module = MagicMock()
+    util_module.dt = SimpleNamespace(DEFAULT_TIME_ZONE=UTC)
+    sys.modules["homeassistant.util"] = util_module
     exceptions_module = MagicMock()
     exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
     exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed

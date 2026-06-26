@@ -54,6 +54,7 @@ def test_supported_detail_accepts_modern_printers_by_pid():
     assert _is_supported_detail(SimpleNamespace(pid=35, name="LegoTech82")) is True
     assert _is_supported_detail(SimpleNamespace(pid=36, name="Workshop")) is True
     assert _is_supported_detail(SimpleNamespace(pid=38, name="Renamed")) is True
+    assert _is_supported_detail(SimpleNamespace(pid=41, name="Shop Printer")) is True
     # Legacy PIDs rejected
     assert _is_supported_detail(SimpleNamespace(pid=30, name="Whatever")) is False
 
@@ -64,6 +65,7 @@ def test_supported_detail_falls_back_to_name_when_pid_missing():
     assert _is_supported_detail(SimpleNamespace(pid=None, name="Adventurer 5M")) is True
     assert _is_supported_detail(SimpleNamespace(pid=None, name="Adventurer 5M Pro")) is True
     assert _is_supported_detail(SimpleNamespace(pid=None, name="AD5X")) is True
+    assert _is_supported_detail(SimpleNamespace(pid=None, name="Creator 5 Pro")) is True
     assert _is_supported_detail(SimpleNamespace(pid=None, name="Adventurer 4")) is False
 
 
@@ -126,5 +128,31 @@ async def test_validate_connection_accepts_renamed_5m_by_pid():
     assert result == {
         "title": "Workshop Printer",
         "machine_name": "LegoTech82",
+    }
+    client.send_product_command.assert_awaited_once()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_validate_connection_accepts_creator_5_pro_by_pid():
+    """A Creator 5 Pro should be accepted via pid 41."""
+    client = _make_validate_client(
+        SimpleNamespace(pid=41, name="Creator 5 Pro")
+    )
+
+    with patch("custom_components.flashforge.config_flow.FlashForgeClient", return_value=client):
+        result = await validate_connection(
+            Mock(),
+            {
+                CONF_NAME: "Creator 5 Pro",
+                CONF_IP_ADDRESS: "192.168.3.11",
+                "serial_number": "SNMUQF9503718",
+                "check_code": "12345678",
+            },
+        )
+
+    assert result == {
+        "title": "Creator 5 Pro",
+        "machine_name": "Creator 5 Pro",
     }
     client.send_product_command.assert_awaited_once()

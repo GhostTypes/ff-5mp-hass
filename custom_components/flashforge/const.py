@@ -36,5 +36,6 @@ PRINTER_MODEL_NAMES: dict[int, str] = {
     35: "Adventurer 5M",
     36: "Adventurer 5M Pro",
     38: "AD5X",
+    41: "Creator 5 Pro",
 }
 SUPPORTED_PIDS = frozenset(PRINTER_MODEL_NAMES)

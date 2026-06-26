@@ -29,6 +29,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import FlashForgeDataUpdateCoordinator
@@ -63,7 +64,10 @@ def _completion_time(data: FFMachineInfo) -> datetime | None:
     ts = data.completion_time
     if ts is None:
         return None
-    return ts.replace(second=0, microsecond=0)
+    ts = ts.replace(second=0, microsecond=0)
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    return ts
 
 
 def _active_ifs_slot(data: FFMachineInfo) -> int | None:

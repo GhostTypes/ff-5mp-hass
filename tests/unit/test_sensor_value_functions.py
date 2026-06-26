@@ -4,6 +4,7 @@ Tests the value_fn lambdas that transform FFMachineInfo data into sensor values.
 These are pure function tests with no Home Assistant dependencies.
 """
 import sys
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -50,6 +51,7 @@ class TestSensorValueFunctions:
         self.mock_data.print_duration = 7200  # 2 hours in seconds
         self.mock_data.print_eta = "01:30"
         self.mock_data.estimated_time = 5400  # 90 minutes remaining
+        self.mock_data.completion_time = datetime(2026, 6, 26, 9, 47, 12)
         self.mock_data.cumulative_print_time = 7425  # 123h45m in minutes
 
         # Filament data
@@ -226,6 +228,22 @@ class TestSensorValueFunctions:
         self.mock_data.estimated_time = None
         sensor = self.get_sensor_by_key("remaining_time")
         assert sensor.value_fn(self.mock_data) == 0
+
+    def test_print_completion_time_adds_timezone_to_naive_datetime(self):
+        """Test timestamp sensors return timezone-aware datetimes for Home Assistant."""
+        self.mock_data.machine_state = MachineState.PRINTING
+        sensor = self.get_sensor_by_key("print_completion_time")
+
+        value = sensor.value_fn(self.mock_data)
+
+        assert value == datetime(2026, 6, 26, 9, 47, tzinfo=value.tzinfo)
+        assert value.tzinfo is not None
+
+    def test_print_completion_time_none_when_not_printing(self):
+        """Test completion time is hidden when no active print is running."""
+        self.mock_data.machine_state = MachineState.READY
+        sensor = self.get_sensor_by_key("print_completion_time")
+        assert sensor.value_fn(self.mock_data) is None
 
     def test_filament_length_rounded(self):
         """Test filament_length sensor rounds to 2 decimals."""
