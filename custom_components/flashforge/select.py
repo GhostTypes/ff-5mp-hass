@@ -95,8 +95,8 @@ async def _async_print_file_service(entity: Entity, call: ServiceCall) -> None:
     """Handle the ``flashforge.print_file`` entity service."""
     if not isinstance(entity, FlashForgeFileSelect):
         raise ServiceValidationError(
-            f"{SERVICE_PRINT_FILE} must target a FlashForge print file entity, "
-            f"got {entity.entity_id}"
+            f"{SERVICE_PRINT_FILE} must target a FlashForge Local File Selection "
+            f"entity, got {entity.entity_id}"
         )
 
     await entity.async_print_file(
@@ -206,7 +206,7 @@ class FlashForgeFileSelect(
     """
 
     _attr_has_entity_name = True
-    _attr_translation_key = "print_file"
+    _attr_translation_key = "local_file_selection"
     _attr_icon = "mdi:file-document-multiple-outline"
 
     def __init__(
@@ -217,12 +217,12 @@ class FlashForgeFileSelect(
         entry: ConfigEntry,
         printer_name: str,
     ) -> None:
-        """Initialize the print file select entity."""
+        """Initialize the local file selection entity."""
         super().__init__(coordinator)
         self._machine_coordinator = machine_coordinator
         self._client = client
         self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_print_file"
+        self._attr_unique_id = f"{entry.entry_id}_local_file_selection"
         self._attr_device_info = build_device_info(
             machine_coordinator, printer_name, entry.entry_id
         )

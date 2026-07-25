@@ -262,7 +262,7 @@
 | Entity | Description | Options | Availability |
 |--------|-------------|---------|--------------|
 | `select.flashforge_filtration_mode` | Control filtration system | Off, Internal, External | 5M Pro / Creator 5 Pro |
-| `select.flashforge_print_file` | Files stored on the printer; picks the one to print | Printer's file list | All Models |
+| `select.flashforge_local_file_selection` | Picks which of the files stored on the printer to print — selecting does not start anything | Printer's file list | All Models |
 
 </div>
 
@@ -280,7 +280,7 @@
 | `button.flashforge_resume_print` | Resume paused print job |
 | `button.flashforge_cancel_print` | Cancel and abort print job |
 | `button.flashforge_clear_status` | Clear printer status/errors |
-| `button.flashforge_print_selected_file` | Start printing the file picked on `select.flashforge_print_file` |
+| `button.flashforge_print_selected_file` | Start printing the file picked on `select.flashforge_local_file_selection` |
 
 </div>
 
@@ -304,9 +304,9 @@
   <h2>Printing Files Stored on the Printer</h2>
 </div>
 
-`select.flashforge_print_file` lists the files on the printer and records which one you want
-to print; `button.flashforge_print_selected_file` starts it. Pressing it without a selection
-reports an error instead of starting anything.
+`select.flashforge_local_file_selection` lists the files on the printer and records which one you want
+to print — picking one starts nothing. `button.flashforge_print_selected_file` is what starts the
+print; pressing it without a selection reports an error instead of starting anything.
 
 The printer's HTTP API reports its **most recent files** (10 on current firmware), so the
 dropdown is not a full directory listing. Files outside that list can still be printed by
@@ -315,7 +315,7 @@ passing their name to the service:
 ```yaml
 action: flashforge.print_file
 target:
-  entity_id: select.flashforge_print_file
+  entity_id: select.flashforge_local_file_selection
 data:
   file_name: benchy.3mf          # optional, defaults to the selected file
   leveling_before_print: true    # optional, defaults to the integration option
@@ -324,7 +324,7 @@ data:
 Whatever metadata the printer reports per file is available for cards and templates:
 
 ```yaml
-{{ state_attr('select.flashforge_print_file', 'files') }}
+{{ state_attr('select.flashforge_local_file_selection', 'files') }}
 # AD5X (reports gcodeListDetail):
 # [{'name': 'benchy.3mf', 'printing_time': 3600, 'filament_weight': 25.5,
 #   'tool_count': 1, 'uses_material_station': False}, ...]
@@ -348,7 +348,7 @@ without mappings and the printer uses the tool/slot assignment stored in the fil
 verified on a Creator 5 Pro, which accepted and started a three-material file this way.
 
 The file list is refreshed every 60 seconds. To refresh it immediately (e.g. right after an
-upload), call `homeassistant.update_entity` on `select.flashforge_print_file`.
+upload), call `homeassistant.update_entity` on `select.flashforge_local_file_selection`.
 
 <div align="center">
   <h2>Usage Examples</h2>

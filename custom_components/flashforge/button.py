@@ -132,7 +132,7 @@ class FlashForgeButton(CoordinatorEntity[FlashForgeDataUpdateCoordinator], Butto
 class FlashForgePrintSelectedFileButton(
     CoordinatorEntity[FlashForgeFileListCoordinator], ButtonEntity
 ):
-    """Starts the print of the file picked on the print file select entity."""
+    """Starts the print of the file picked on the Local File Selection entity."""
 
     _attr_has_entity_name = True
     _attr_translation_key = "print_selected_file"
@@ -175,7 +175,8 @@ class FlashForgePrintSelectedFileButton(
         selected = self.coordinator.selected_file
         if selected is None or selected not in self.coordinator.file_names:
             raise ServiceValidationError(
-                "No file selected to print - pick one on the print file entity first"
+                "No file selected to print - pick one on the Local File Selection "
+                "entity first"
             )
 
         leveling_before_print = self._entry.options.get(

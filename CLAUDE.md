@@ -6,7 +6,7 @@ Guidance for AI coding assistants working in this repository.
 - Integration **version 1.3.0** (in-flight; not yet tagged).
 - Provides a complete Home Assistant experience for FlashForge printers using the **HTTP API only**.
 - Entities shipped: **58 total** (38 sensors, 5 binary sensors, 2 switches, 5 buttons, 2 selects, 1 MJPEG camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
-- One service: `flashforge.print_file` (entity service on the print file select).
+- One service: `flashforge.print_file` (entity service on the Local File Selection entity).
 - Diagnostics download supported (`diagnostics.py`), with credentials and identifiers redacted.
 - Reauthentication and reconfigure flows supported in addition to the original setup paths.
 - UI config flow supports automatic discovery, manual entry, credential validation, and an adjustable polling interval (5–300 s, default 10 s).
@@ -82,7 +82,7 @@ Treat this file as the living source of truth for workflows and expectations—u
 - `sensor.py` – 28 sensor entities (operational + diagnostic). Modify the `SENSORS` tuple, translations, and docs together when changing sensors.
 - `binary_sensor.py` – 4 machine-state binary sensors (printing, online, error, paused).
 - `switch.py` – LED switch with client capability check (capability check can be overridden via options).
-- `select.py` – Filtration mode select (Off / Internal / External, AD5X only) and the print file select (`FlashForgeFileSelect`, options = the printer's file list, metadata in `extra_state_attributes`). Also registers the `flashforge.print_file` entity service.
+- `select.py` – Filtration mode select (Off / Internal / External, AD5X only) and the Local File Selection entity (`FlashForgeFileSelect`, options = the printer's file list, metadata in `extra_state_attributes`). Also registers the `flashforge.print_file` entity service.
 - `button.py` – Pause / resume / cancel / clear-status commands plus `FlashForgePrintSelectedFileButton`; request a refresh after each action.
 - `print_job.py` – Per-model dispatch for starting a file already on the printer (`start_creator5_job` / AD5X single+multi color / `print_local_file`) and `build_material_mappings()`, which derives Material Station mappings from the file's tool data plus the printer's slot colors. Raises `ServiceValidationError` instead of guessing an incomplete mapping. **Per-file metadata is model-dependent**: the AD5X returns `gcodeListDetail` (print time, weight, per-tool material data), a Creator 5 Pro returns plain file names — verified on hardware with `scripts/file_print_probe.py`. Unknown values must stay unknown (`select.file_attributes()` omits them); treating them as `0`/`False` would make a multi-material file look single-material. A Creator 5 Pro was confirmed to accept and start a three-material file sent **without** `materialMappings` — the firmware falls back to the assignment stored in the 3MF, so no mapping input is needed on that model. The resulting color assignment itself is unverified (the test job was cancelled right after the start).
 - `services.yaml` – Service definition for `flashforge.print_file` (keep in sync with the `services` block in `strings.json`).
@@ -349,9 +349,9 @@ pytest tests/unit/test_sensor_value_functions.py -v
    - Sensors: machine status, nozzle temps/targets, bed temps/targets, progress, file, current/total layers, elapsed/remaining time, filament length/weight, print speed, z offset, nozzle size, filament type, lifetime stats, plus diagnostic sensors (firmware version, free disk space, error code).
    - Binary sensors: printing, online, error, paused.
    - Switch: LED (may show unavailable on unsupported models unless override is enabled).
-   - Select: filtration mode — Off / Internal / External (AD5X only); print file — lists the printer's files.
+   - Select: filtration mode — Off / Internal / External (AD5X only); Local File Selection — lists the printer's files.
    - Buttons: pause, resume, cancel, clear status, print selected file (errors when pressed with nothing selected).
-   - Service: `flashforge.print_file` on the print file select, with and without `file_name` / `leveling_before_print`.
+   - Service: `flashforge.print_file` on the Local File Selection entity, with and without `file_name` / `leveling_before_print`.
    - Camera: MJPEG feed reachable.
    - Image: g-code thumbnail of the active print.
    - Image (AD5X only): four IFS slot swatches (`image.*_ifs_slot_1..4`) showing material color + label, "EMPTY" tile for unloaded slots.

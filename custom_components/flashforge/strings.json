@@ -155,7 +155,7 @@
       "print_selected_file": { "name": "Print Selected File" }
     },
     "select": {
-      "print_file": { "name": "Print File" },
+      "local_file_selection": { "name": "Local File Selection" },
       "filtration_mode": {
         "name": "Filtration Mode",
         "state": {
@@ -183,7 +183,7 @@
       "fields": {
         "file_name": {
           "name": "File name",
-          "description": "Name of the file on the printer. Defaults to the file selected on the Print File entity."
+          "description": "Name of the file on the printer. Defaults to the file picked on the Local File Selection entity."
         },
         "leveling_before_print": {
           "name": "Level bed before print",
