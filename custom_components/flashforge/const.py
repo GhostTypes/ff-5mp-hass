@@ -7,12 +7,23 @@ CONF_SERIAL_NUMBER = "serial_number"
 CONF_CHECK_CODE = "check_code"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_OVERRIDE_LED_AVAILABILITY = "override_led_availability"
+CONF_LEVELING_BEFORE_PRINT = "leveling_before_print"
 
 # Default values
 DEFAULT_NAME = "FlashForge Printer"
 DEFAULT_SCAN_INTERVAL = 10  # seconds
 DEFAULT_HTTP_PORT = 8898
 DEFAULT_CAMERA_PORT = 8080
+DEFAULT_LEVELING_BEFORE_PRINT = False
+
+# The printer's local file list changes only when a file is uploaded or deleted,
+# so it is polled on its own, slower schedule than the machine state.
+FILE_LIST_SCAN_INTERVAL = 60  # seconds
+
+# Services
+SERVICE_PRINT_FILE = "print_file"
+ATTR_FILE_NAME = "file_name"
+ATTR_LEVELING_BEFORE_PRINT = "leveling_before_print"
 
 # Entity keys
 ATTR_MACHINE_STATUS = "machine_status"

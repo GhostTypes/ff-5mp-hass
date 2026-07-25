@@ -12,7 +12,7 @@ from .const import (
     CONF_SERIAL_NUMBER,
     DOMAIN,
 )
-from .coordinator import FlashForgeDataUpdateCoordinator
+from .coordinator import FlashForgeDataUpdateCoordinator, FlashForgeFileListCoordinator
 
 TO_REDACT_ENTRY = {CONF_CHECK_CODE, CONF_SERIAL_NUMBER}
 TO_REDACT_DATA = {
@@ -47,6 +47,9 @@ async def async_get_config_entry_diagnostics(
     coordinator: FlashForgeDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][
         "coordinator"
     ]
+    file_coordinator: FlashForgeFileListCoordinator = hass.data[DOMAIN][entry.entry_id][
+        "file_coordinator"
+    ]
     client = hass.data[DOMAIN][entry.entry_id]["client"]
 
     machine_info = async_redact_data(
@@ -67,6 +70,11 @@ async def async_get_config_entry_diagnostics(
                 else None
             ),
             "device_model": coordinator.device_model,
+        },
+        "file_list": {
+            "last_update_success": file_coordinator.last_update_success,
+            "files": file_coordinator.file_names,
+            "selected_file": file_coordinator.selected_file,
         },
         "capabilities": {
             "led_control": getattr(client, "led_control", None),

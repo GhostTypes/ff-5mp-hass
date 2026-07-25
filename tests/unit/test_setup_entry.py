@@ -58,12 +58,19 @@ async def test_async_setup_entry_uses_library_led_override_option():
     coordinator = Mock()
     coordinator.async_config_entry_first_refresh = AsyncMock()
 
+    file_coordinator = Mock()
+    file_coordinator.async_refresh = AsyncMock()
+
     options_sentinel = object()
 
     with (
         patch("custom_components.flashforge.FiveMClientConnectionOptions", return_value=options_sentinel) as options_cls,
         patch("custom_components.flashforge.FlashForgeClient", return_value=client) as client_cls,
         patch("custom_components.flashforge.FlashForgeDataUpdateCoordinator", return_value=coordinator),
+        patch(
+            "custom_components.flashforge.FlashForgeFileListCoordinator",
+            return_value=file_coordinator,
+        ),
     ):
         result = await async_setup_entry(hass, entry)
 
@@ -81,3 +88,9 @@ async def test_async_setup_entry_uses_library_led_override_option():
     hass.config_entries.async_forward_entry_setups.assert_awaited_once()
     entry.async_on_unload.assert_called_once()
     assert hass.data[DOMAIN][entry.entry_id]["client"] is client
+    # The file list is fetched with the non-raising refresh so a file list
+    # hiccup cannot block setup.
+    file_coordinator.async_refresh.assert_awaited_once()
+    assert (
+        hass.data[DOMAIN][entry.entry_id]["file_coordinator"] is file_coordinator
+    )

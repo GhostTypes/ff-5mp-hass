@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Local file list and print start.** The files stored on the printer are now visible in Home Assistant and a print can be started from them:
+  - `select.<printer>_print_file` lists the printer's files (from the HTTP `/gcodeList` endpoint) and records which one to print. Each file's print time, filament weight, tool count, and Material Station flag are exposed via `extra_state_attributes["files"]` for cards and templates.
+  - `button.<printer>_print_selected_file` starts the selected file. It stays unavailable while no file is selected.
+  - `flashforge.print_file` service (targets the print file select entity) with optional `file_name` and `leveling_before_print` fields, so automations can start any file on the printer — including ones outside the reported list.
+  - New option **"Level the bed before starting a print"** (default off) supplies the default for the button and the service.
+  - Material Station files (AD5X / Creator 5 series) are started with the per-tool mappings derived from the file's own tool data plus the colors the printer reports for the loaded slots. When that data is incomplete the print is refused with an error telling the user to start it from the slicer instead of guessing a mapping.
+- The file list is polled by its own coordinator every 60 s (independent of the machine-state interval) and is included in diagnostics.
+
+### Notes
+- The printer's HTTP API only reports its most recent files (10 on current firmware); older files can still be printed by passing `file_name` to `flashforge.print_file`. The TCP full-directory listing is deliberately not used — this integration stays HTTP-only.
+
 ## [1.3.1] - 2026-07-23
 
 ### Fixed

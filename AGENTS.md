@@ -6,7 +6,8 @@ Working agreement for AI assistants contributing to `ff-5mp-hass`.
 - **Integration:** FlashForge printers for Home Assistant (HTTP API only).
 - **Current release:** `v1.3.0` (in-flight; not yet tagged). Last published: `v1.2.0`.
 - **Supported printers:** `AD5X`, `Adventurer 5M`, `Adventurer 5M Pro`, `Creator 5`, and `Creator 5 Pro` only.
-- **Entities shipped:** 56 total (38 sensors, 5 binary sensors, 2 switches, 1 select, 4 buttons, 1 camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
+- **Entities shipped:** 58 total (38 sensors, 5 binary sensors, 2 switches, 2 selects, 5 buttons, 1 camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
+- **Services:** `flashforge.print_file` — starts a file already stored on the printer (entity service on the print file select).
 - **Key dependency:** `flashforge-python-api>=1.3.0` (see sibling repo `ff-5mp-api-py`).
 - **Primary references:** `CLAUDE.md` (agent workflow), `AGENTS.md` (this playbook), `README.md` (user docs), `CHANGELOG.md`, `homeassistant/README.md`, `HOME_ASSISTANT_DOCS_COMPANION.md`, and `HACS_PUBLISHER_COMPANION.md`.
 
@@ -32,7 +33,7 @@ Working agreement for AI assistants contributing to `ff-5mp-hass`.
   - Prepare GitHub releases and ensure README badges reflect the latest status.
 
 ## Shared Guidelines
-- Respect the HTTP-only policy—introduce TCP/G-code handling only by extending `flashforge-python-api`.
+- Respect the HTTP-only policy—introduce TCP/G-code handling only by extending `flashforge-python-api`. The file list therefore comes from `files.get_recent_file_list()` (HTTP `/gcodeList`, most recent files only), never from the TCP directory listing.
 - Treat the coordinator as the single source of truth; entities should not cache printer state.
 - Update `strings.json` and `translations/en.json` alongside config-flow text changes.
 - Keep imports ordered and comments purposeful.
@@ -64,8 +65,9 @@ Working agreement for AI assistants contributing to `ff-5mp-hass`.
    - Sensors: machine status, nozzle temps/targets, bed temps/targets, progress, file, current/total layers, elapsed/remaining time, filament length/weight, print speed, z offset, move mode, nozzle size, filament type.
    - Binary sensors: printing, online, error, paused.
    - Switches: LED and camera power (may show unavailable if unsupported).
-   - Select: filtration mode (may show unavailable if unsupported).
-   - Buttons: pause, resume, cancel, clear status.
+   - Select: filtration mode (may show unavailable if unsupported); print file (lists the printer's files).
+   - Buttons: pause, resume, cancel, clear status, print selected file.
+   - Service: `flashforge.print_file` (defaults to the selected file, accepts any file name on the printer).
    - Camera: entity exists and becomes available when the printer reports an OEM stream URL.
 4. **Controls** – Exercise switches and buttons; confirm state refreshes and coordinator remains healthy.
 5. **Resilience** – Temporarily disrupt connectivity (e.g., disable LAN mode) and confirm graceful error handling and recovery in Home Assistant logs.

@@ -171,7 +171,7 @@
 | **Prerequisites: Enable LAN Mode** | Before adding the integration, you must enable LAN mode on your FlashForge printer:<br><br>1. On the printer touchscreen, go to **Settings** → **Network** → **LAN Mode**<br>2. Enable LAN mode<br>3. Note the **Check Code** (8-digit code) - you'll need this for setup<br><br>[Video Tutorial](https://www.youtube.com/watch?v=krdEGccZuKo) |
 | **Option 1: Automatic Discovery (Recommended)** | 1. Go to **Settings** → **Devices & Services** → **Integrations**<br>2. Click **+ Add Integration**<br>3. Search for **"FlashForge"**<br>4. Select your AD5X, Adventurer 5M, Adventurer 5M Pro, Creator 5, or Creator 5 Pro from the discovered list<br>5. Enter your printer's **Check Code**<br>6. Click **Submit** |
 | **Option 2: Manual Configuration** | 1. Go to **Settings** → **Devices & Services** → **Integrations**<br>2. Click **+ Add Integration**<br>3. Search for **"FlashForge"**<br>4. Select **"Configure Manually"**<br>5. Enter:<br>&nbsp;&nbsp;&nbsp;• **IP Address**: Your printer's IP (e.g., `192.168.1.100`)<br>&nbsp;&nbsp;&nbsp;• **Printer Name**: Friendly name (optional)<br>&nbsp;&nbsp;&nbsp;• **Serial Number**: From the printer settings screen. **Must include the `SN` prefix** (e.g. `SN123456789`) — the `SN` printed on the back sticker is part of the value you enter, not just a label<br>&nbsp;&nbsp;&nbsp;• **Check Code**: From LAN mode settings<br>6. Click **Submit** |
-| **Configuration Options** | After setup, you can adjust settings:<br><br>1. Go to **Settings** → **Devices & Services** → **FlashForge**<br>2. Click **⋮** on your printer → **Configure**<br>3. **Scan Interval**: Update frequency in seconds (5-300, default: 10) |
+| **Configuration Options** | After setup, you can adjust settings:<br><br>1. Go to **Settings** → **Devices & Services** → **FlashForge**<br>2. Click **⋮** on your printer → **Configure**<br>3. **Scan Interval**: Update frequency in seconds (5-300, default: 10)<br>4. **Always show LED switch**: Override the printer's LED capability check<br>5. **Level the bed before starting a print**: Applies to prints started from Home Assistant (default: off) |
 | **LED Switch Override** | If your printer's LED switch is not detected but you know it is supported, enable **Always show LED switch** in the options. This will force the LED switch to appear regardless of printer capability checks. |
 
 </div>
@@ -262,6 +262,7 @@
 | Entity | Description | Options | Availability |
 |--------|-------------|---------|--------------|
 | `select.flashforge_filtration_mode` | Control filtration system | Off, Internal, External | 5M Pro / Creator 5 Pro |
+| `select.flashforge_print_file` | Files stored on the printer; picks the one to print | Printer's file list | All Models |
 
 </div>
 
@@ -279,6 +280,7 @@
 | `button.flashforge_resume_print` | Resume paused print job |
 | `button.flashforge_cancel_print` | Cancel and abort print job |
 | `button.flashforge_clear_status` | Clear printer status/errors |
+| `button.flashforge_print_selected_file` | Start printing the file picked on `select.flashforge_print_file` |
 
 </div>
 
@@ -297,6 +299,47 @@
 </div>
 
 
+
+<div align="center">
+  <h2>Printing Files Stored on the Printer</h2>
+</div>
+
+`select.flashforge_print_file` lists the files on the printer and records which one you want
+to print; `button.flashforge_print_selected_file` starts it. The button stays unavailable
+until a file is selected.
+
+The printer's HTTP API reports its **most recent files** (10 on current firmware), so the
+dropdown is not a full directory listing. Files outside that list can still be printed by
+passing their name to the service:
+
+```yaml
+action: flashforge.print_file
+target:
+  entity_id: select.flashforge_print_file
+data:
+  file_name: benchy.3mf          # optional, defaults to the selected file
+  leveling_before_print: true    # optional, defaults to the integration option
+```
+
+Each file's metadata is available for cards and templates:
+
+```yaml
+{{ state_attr('select.flashforge_print_file', 'files') }}
+# [{'name': 'benchy.3mf', 'printing_time': 3600, 'filament_weight': 25.5,
+#   'tool_count': 1, 'uses_material_station': False}, ...]
+```
+
+**Bed leveling** before a print is off by default and can be enabled in the integration's
+**Configure** dialog, or per call via `leveling_before_print`.
+
+**Material Station files** (AD5X / Creator 5 series) are started with the per-tool material
+mappings derived from the file's own tool data combined with the colors the printer reports
+for the loaded slots. If that information is incomplete, the print is refused with an error
+rather than mapping materials by guesswork — start such a print from your slicer or the
+FlashForge app instead.
+
+The file list is refreshed every 60 seconds. To refresh it immediately (e.g. right after an
+upload), call `homeassistant.update_entity` on `select.flashforge_print_file`.
 
 <div align="center">
   <h2>Usage Examples</h2>

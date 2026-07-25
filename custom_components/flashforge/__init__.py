@@ -18,7 +18,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
-from .coordinator import FlashForgeDataUpdateCoordinator
+from .coordinator import FlashForgeDataUpdateCoordinator, FlashForgeFileListCoordinator
 from .util import async_close_flashforge_client
 
 _LOGGER = logging.getLogger(__name__)
@@ -90,9 +90,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
 
-    # Store coordinator and client
+    # The file list lives on its own slower schedule. A failure here must not
+    # block setup - only the file entities depend on it.
+    file_coordinator = FlashForgeFileListCoordinator(
+        hass=hass,
+        client=client,
+        name=name,
+    )
+    await file_coordinator.async_refresh()
+
+    # Store coordinators and client
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
+        "file_coordinator": file_coordinator,
         "client": client,
         "name": name,
     }
@@ -112,8 +122,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        # Clean up coordinator and client
+        # Clean up coordinators and client
         data = hass.data[DOMAIN].pop(entry.entry_id)
+        file_coordinator: FlashForgeFileListCoordinator = data["file_coordinator"]
+        await file_coordinator.async_shutdown()
         coordinator: FlashForgeDataUpdateCoordinator = data["coordinator"]
         await coordinator.async_shutdown()
 

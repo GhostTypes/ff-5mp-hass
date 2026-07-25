@@ -34,7 +34,8 @@ from unittest.mock import AsyncMock, MagicMock
 class Entity:
     """Stub for homeassistant.helpers.entity.Entity."""
 
-    pass
+    def async_write_ha_state(self) -> None:
+        """Stub for the state write-back; a no-op outside a running HA."""
 
 
 class CoordinatorEntity(Entity):
@@ -61,6 +62,10 @@ class DataUpdateCoordinator:
         self.data = None
         self.last_update_success = True
         self.async_request_refresh = AsyncMock()
+        self.async_update_listeners = MagicMock()
+        self.async_refresh = AsyncMock()
+        self.async_config_entry_first_refresh = AsyncMock()
+        self.async_shutdown = AsyncMock()
 
     def __class_getitem__(cls, item):
         """Make class subscriptable for type hints like DataUpdateCoordinator[Data]."""
@@ -69,6 +74,14 @@ class DataUpdateCoordinator:
 
 class UpdateFailed(Exception):
     """Stub for homeassistant.helpers.update_coordinator.UpdateFailed."""
+
+
+class HomeAssistantError(Exception):
+    """Stub for homeassistant.exceptions.HomeAssistantError."""
+
+
+class ServiceValidationError(HomeAssistantError):
+    """Stub for homeassistant.exceptions.ServiceValidationError."""
 
 
 class ConfigEntryNotReady(Exception):
@@ -402,6 +415,8 @@ def mock_homeassistant():
     util_module.dt.utcnow = lambda: datetime.datetime.now(datetime.timezone.utc)
     sys.modules["homeassistant.util"] = util_module
     exceptions_module = MagicMock()
+    exceptions_module.HomeAssistantError = HomeAssistantError
+    exceptions_module.ServiceValidationError = ServiceValidationError
     exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
     exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed
     sys.modules["homeassistant.exceptions"] = exceptions_module

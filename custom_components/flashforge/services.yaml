@@ -1,0 +1,15 @@
+print_file:
+  target:
+    entity:
+      integration: flashforge
+      domain: select
+  fields:
+    file_name:
+      required: false
+      example: benchy.3mf
+      selector:
+        text:
+    leveling_before_print:
+      required: false
+      selector:
+        boolean:

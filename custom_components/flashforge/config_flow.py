@@ -15,8 +15,10 @@ import homeassistant.helpers.config_validation as cv
 
 from .const import (
     CONF_CHECK_CODE,
+    CONF_LEVELING_BEFORE_PRINT,
     CONF_SCAN_INTERVAL,
     CONF_SERIAL_NUMBER,
+    DEFAULT_LEVELING_BEFORE_PRINT,
     DEFAULT_NAME,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -486,6 +488,12 @@ class FlashForgeOptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_OVERRIDE_LED_AVAILABILITY,
                         default=self.config_entry.options.get(CONF_OVERRIDE_LED_AVAILABILITY, False),
+                    ): bool,
+                    vol.Optional(
+                        CONF_LEVELING_BEFORE_PRINT,
+                        default=self.config_entry.options.get(
+                            CONF_LEVELING_BEFORE_PRINT, DEFAULT_LEVELING_BEFORE_PRINT
+                        ),
                     ): bool,
                 }
             ),

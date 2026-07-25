@@ -74,7 +74,8 @@
         "description": "Configure options for your FlashForge printer",
         "data": {
           "scan_interval": "Update Interval (seconds)",
-          "override_led_availability": "Always show LED switch (override printer capability check)"
+          "override_led_availability": "Always show LED switch (override printer capability check)",
+          "leveling_before_print": "Level the bed before starting a print"
         }
       }
     }
@@ -150,9 +151,11 @@
       "pause_print": { "name": "Pause Print" },
       "resume_print": { "name": "Resume Print" },
       "cancel_print": { "name": "Cancel Print" },
-      "clear_status": { "name": "Clear Status" }
+      "clear_status": { "name": "Clear Status" },
+      "print_selected_file": { "name": "Print Selected File" }
     },
     "select": {
+      "print_file": { "name": "Print File" },
       "filtration_mode": {
         "name": "Filtration Mode",
         "state": {
@@ -171,6 +174,22 @@
       "ifs_slot_2": { "name": "Material Station Slot 2" },
       "ifs_slot_3": { "name": "Material Station Slot 3" },
       "ifs_slot_4": { "name": "Material Station Slot 4" }
+    }
+  },
+  "services": {
+    "print_file": {
+      "name": "Print file",
+      "description": "Starts printing a file that is already stored on the printer.",
+      "fields": {
+        "file_name": {
+          "name": "File name",
+          "description": "Name of the file on the printer. Defaults to the file selected on the Print File entity."
+        },
+        "leveling_before_print": {
+          "name": "Level bed before print",
+          "description": "Run bed leveling before the print starts. Defaults to the integration option."
+        }
+      }
     }
   }
 }

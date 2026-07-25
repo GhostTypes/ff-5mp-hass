@@ -5,7 +5,8 @@ Guidance for AI coding assistants working in this repository.
 ## Current State (May 2026)
 - Integration **version 1.3.0** (in-flight; not yet tagged).
 - Provides a complete Home Assistant experience for FlashForge printers using the **HTTP API only**.
-- Entities shipped: **56 total** (38 sensors, 5 binary sensors, 2 switches, 4 buttons, 1 select, 1 MJPEG camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
+- Entities shipped: **58 total** (38 sensors, 5 binary sensors, 2 switches, 5 buttons, 2 selects, 1 MJPEG camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
+- One service: `flashforge.print_file` (entity service on the print file select).
 - Diagnostics download supported (`diagnostics.py`), with credentials and identifiers redacted.
 - Reauthentication and reconfigure flows supported in addition to the original setup paths.
 - UI config flow supports automatic discovery, manual entry, credential validation, and an adjustable polling interval (5–300 s, default 10 s).
@@ -49,7 +50,7 @@ Treat this file as the living source of truth for workflows and expectations—u
   - Automatic printer discovery via UDP broadcast with multi-printer selection.
   - Manual fallback for IP/serial/check-code entry.
   - Credential validation before config entry creation.
-  - Options flow exposes adjustable polling (5–300 s).
+  - Options flow exposes the LED-availability override, the pre-print bed-leveling default, and adjustable polling (5–300 s).
 - **Monitoring**
   - 38 sensors covering status, temperatures (per-toolhead on the Creator 5 series, plus a heated chamber), progress, layers, timing, filament metrics, fan speeds, air quality (5M Pro / Creator 5 Pro TVOC), active Material Station slot, print completion time, lifetime stats, plus diagnostic sensors (`firmware_version`, `free_disk_space`, `ip_address`, `error_code`).
   - 5 binary sensors tracking printing, online, error, paused, and door-open (Creator 5 Pro only) states.
@@ -60,10 +61,11 @@ Treat this file as the living source of truth for workflows and expectations—u
   - LED switch with capability detection (graceful "unavailable" for unsupported models, with an option to override the check).
   - Filtration as a `select` entity with Off / Internal / External states (AD5X only).
   - Pause / resume / cancel / clear-status buttons with post-action refresh.
+  - Local file printing: a `select` listing the printer's files, a "print selected file" button, and the `flashforge.print_file` service.
   - MJPEG camera entity targeting `http://<ip>:8080/?action=stream`.
 - **Architecture**
-  - HTTP API only (`FlashForgeClient.info/control/job_control`).
-  - `DataUpdateCoordinator` refresh loop with error recovery and client cleanup.
+  - HTTP API only (`FlashForgeClient.info/control/job_control/files`).
+  - `DataUpdateCoordinator` refresh loop with error recovery and client cleanup; a second, slower coordinator for the file list.
   - Unique IDs built from config entry, serial number, and entity keys.
 
 ## Installation Quick Start
@@ -76,12 +78,14 @@ Treat this file as the living source of truth for workflows and expectations—u
 ## Core Modules and Responsibilities
 - `__init__.py` – Config entry setup, HTTP client initialization, coordinator registration, teardown.
 - `config_flow.py` – Discovery + manual onboarding, reauth + reconfigure flows, credential validation via HTTP, options flow (scan interval + LED-availability override). Enforces `SUPPORTED_PIDS` early via `_is_supported_detail()`.
-- `coordinator.py` – `DataUpdateCoordinator` wrapping `FlashForgeClient.info.get()` with graceful error handling and cleanup.
+- `coordinator.py` – `FlashForgeDataUpdateCoordinator` wrapping `FlashForgeClient.info.get()` with graceful error handling and cleanup, plus `FlashForgeFileListCoordinator` polling `files.get_recent_file_list()` on the slower `FILE_LIST_SCAN_INTERVAL` (it also holds the file selected for printing and never closes the shared client).
 - `sensor.py` – 28 sensor entities (operational + diagnostic). Modify the `SENSORS` tuple, translations, and docs together when changing sensors.
 - `binary_sensor.py` – 4 machine-state binary sensors (printing, online, error, paused).
 - `switch.py` – LED switch with client capability check (capability check can be overridden via options).
-- `select.py` – Filtration mode select (Off / Internal / External, AD5X only).
-- `button.py` – Pause / resume / cancel / clear-status commands; request a refresh after each action.
+- `select.py` – Filtration mode select (Off / Internal / External, AD5X only) and the print file select (`FlashForgeFileSelect`, options = the printer's file list, metadata in `extra_state_attributes`). Also registers the `flashforge.print_file` entity service.
+- `button.py` – Pause / resume / cancel / clear-status commands plus `FlashForgePrintSelectedFileButton`; request a refresh after each action.
+- `print_job.py` – Per-model dispatch for starting a file already on the printer (`start_creator5_job` / AD5X single+multi color / `print_local_file`) and `build_material_mappings()`, which derives Material Station mappings from the file's tool data plus the printer's slot colors. Raises `HomeAssistantError` instead of guessing an incomplete mapping.
+- `services.yaml` – Service definition for `flashforge.print_file` (keep in sync with the `services` block in `strings.json`).
 - `camera.py` – MJPEG camera entity (`http://<ip>:8080/?action=stream` by default).
 - `image.py` – Hosts the active-print g-code thumbnail entity AND the 4 Material Station slot swatch entities (AD5X / Creator 5 series). Swatches are PNG-encoded by `render_swatch_bytes()` (Pillow) inside an executor; both entity types cache rendered bytes and only invalidate on input change.
 - `diagnostics.py` – HA diagnostics download payload, with `check_code`, `serial_number`, MAC/IP, and cloud registration codes redacted.
@@ -282,7 +286,7 @@ pytest tests/unit/ --cov=custom_components.flashforge --cov-report=term-missing
 pytest tests/unit/test_sensor_value_functions.py -v
 ```
 
-**Current coverage (103 tests total):**
+**Current coverage (147 tests total):**
 - `tests/unit/test_discovery.py` – printer discovery protocol
 - `tests/unit/test_sensor_value_functions.py` – sensor value extraction
 - `tests/unit/test_binary_sensor_value_functions.py` – binary sensor logic
@@ -294,10 +298,14 @@ pytest tests/unit/test_sensor_value_functions.py -v
 - `tests/unit/test_platform_registration.py` – platform list sanity
 - `tests/unit/test_select_availability.py` – filtration select availability
 - `tests/unit/test_switch_availability.py` – LED switch availability with override
+- `tests/unit/test_file_list_coordinator.py` – local file list fetch, filtering, and error paths
+- `tests/unit/test_print_job.py` – per-model print-start dispatch and Material Station mapping
+- `tests/unit/test_print_file_entities.py` – print file select + print button behavior
 
 **Test dependencies** (`requirements-test.txt`):
 - Core: `pytest`, `pytest-asyncio`, `pytest-cov`
 - Snapshot testing: `syrupy` (for future use)
+- Schema validation: `voluptuous` (config flow + service schemas)
 - API library: `flashforge-python-api` (editable install for development)
 - Network: `netifaces` (for discovery tests)
 - **Explicitly excludes** `homeassistant` and `pytest-homeassistant-custom-component` (Unix-only)
@@ -340,8 +348,9 @@ pytest tests/unit/test_sensor_value_functions.py -v
    - Sensors: machine status, nozzle temps/targets, bed temps/targets, progress, file, current/total layers, elapsed/remaining time, filament length/weight, print speed, z offset, nozzle size, filament type, lifetime stats, plus diagnostic sensors (firmware version, free disk space, error code).
    - Binary sensors: printing, online, error, paused.
    - Switch: LED (may show unavailable on unsupported models unless override is enabled).
-   - Select: filtration mode — Off / Internal / External (AD5X only).
-   - Buttons: pause, resume, cancel, clear status.
+   - Select: filtration mode — Off / Internal / External (AD5X only); print file — lists the printer's files.
+   - Buttons: pause, resume, cancel, clear status, print selected file (unavailable until a file is selected).
+   - Service: `flashforge.print_file` on the print file select, with and without `file_name` / `leveling_before_print`.
    - Camera: MJPEG feed reachable.
    - Image: g-code thumbnail of the active print.
    - Image (AD5X only): four IFS slot swatches (`image.*_ifs_slot_1..4`) showing material color + label, "EMPTY" tile for unloaded slots.
@@ -354,7 +363,7 @@ pytest tests/unit/test_sensor_value_functions.py -v
 - **Hardware caveat** – Full verification requires a FlashForge printer with LAN mode enabled; simulated runs only confirm flow logic.
 
 ## Implementation Guard Rails
-- **HTTP-first policy** – Do not introduce direct TCP/G-code communication here. If unavoidable, extend the API library (`ff-5mp-api-py`) and consume it via HTTP-style helpers.
+- **HTTP-first policy** – Do not introduce direct TCP/G-code communication here. If unavoidable, extend the API library (`ff-5mp-api-py`) and consume it via HTTP-style helpers. This is why the file list uses `files.get_recent_file_list()` (HTTP `/gcodeList`, most recent files only) instead of `files.get_file_list()`, which falls back to a TCP/8899 directory listing on the 5M family. The `flashforge.print_file` service accepts a free-form `file_name` so files outside that list stay printable.
 - **Coordinator as source of truth** – Entities derive state from the coordinator’s latest `FFMachineInfo`. Avoid storing custom copies of printer state in entities.
 - **PID for model identity, never the printer name** – Modern HTTP printers report a stable firmware-set integer `pid` on `/detail` (35 = Adventurer 5M, 36 = 5M Pro, 38 = AD5X). The integration enforces this in TWO places that should both stay in sync:
   - `config_flow.py` `_is_supported_detail()` reads the raw `/detail` payload during pairing and rejects PIDs not in `SUPPORTED_PIDS = {35, 36, 38}`. This is the early gate — runs before any `FFMachineInfo` parsing happens.
