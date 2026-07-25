@@ -94,3 +94,52 @@ async def test_async_setup_entry_uses_library_led_override_option():
     assert (
         hass.data[DOMAIN][entry.entry_id]["file_coordinator"] is file_coordinator
     )
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_led_override_off_leaves_detection_to_the_printer():
+    """An unset LED option must not pin the capability to False.
+
+    The library reads led_control_override=False as "force the LED off", which
+    hides the switch on every printer regardless of what /product reported.
+    """
+    hass = Mock()
+    hass.data = {}
+    hass.config_entries = Mock()
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    entry = Mock()
+    entry.entry_id = "entry-2"
+    entry.data = {
+        CONF_IP_ADDRESS: "192.168.1.100",
+        CONF_SERIAL_NUMBER: "SN123456",
+        CONF_CHECK_CODE: "CHECK123",
+        CONF_NAME: "Workshop Printer",
+    }
+    entry.options = {CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL}
+    entry.add_update_listener = Mock(return_value=Mock())
+    entry.async_on_unload = Mock()
+
+    client = Mock()
+    client.info.get = AsyncMock(return_value=Mock())
+    client.cache_details = Mock(return_value=True)
+    client.send_product_command = AsyncMock(return_value=True)
+
+    coordinator = Mock()
+    coordinator.async_config_entry_first_refresh = AsyncMock()
+    file_coordinator = Mock()
+    file_coordinator.async_refresh = AsyncMock()
+
+    with (
+        patch("custom_components.flashforge.FiveMClientConnectionOptions") as options_cls,
+        patch("custom_components.flashforge.FlashForgeClient", return_value=client),
+        patch("custom_components.flashforge.FlashForgeDataUpdateCoordinator", return_value=coordinator),
+        patch(
+            "custom_components.flashforge.FlashForgeFileListCoordinator",
+            return_value=file_coordinator,
+        ),
+    ):
+        assert await async_setup_entry(hass, entry) is True
+
+    options_cls.assert_called_once_with(led_control_override=None)

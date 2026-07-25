@@ -13,6 +13,7 @@ Usage (from the repository root):
     python scripts/file_print_probe.py --discover
     python scripts/file_print_probe.py --ip 192.168.1.50 --serial SN123 --check-code ABCD
     python scripts/file_print_probe.py --ip ... --raw
+    python scripts/file_print_probe.py --ip ... --thumb benchy.3mf --thumb-out t.png
     python scripts/file_print_probe.py --ip ... --print benchy.3mf --yes
 
 Credentials may also come from the environment: FF_IP, FF_SERIAL, FF_CHECK_CODE.
@@ -42,7 +43,7 @@ from flashforge import (  # noqa: E402
     PrinterDiscovery,
 )
 from flashforge.api.constants.endpoints import Endpoints  # noqa: E402
-from flashforge.models.responses import FFPrinterDetail, GCodeListResponse  # noqa: E402
+from flashforge.models.responses import GCodeListResponse  # noqa: E402
 from pydantic import ValidationError  # noqa: E402
 
 from custom_components.flashforge.print_job import (  # noqa: E402
@@ -50,7 +51,6 @@ from custom_components.flashforge.print_job import (  # noqa: E402
     build_material_mappings,
     needs_material_station,
 )
-from custom_components.flashforge.util import has_material_station  # noqa: E402
 from homeassistant.exceptions import HomeAssistantError  # noqa: E402
 
 
@@ -99,10 +99,10 @@ def report_printer(client: FlashForgeClient, info) -> None:
     print(f"  is_creator5_pro     {client.is_creator5_pro}")
     print(f"  is_ad5x             {client.is_ad5x}")
     print(f"  http_only           {client.http_only}")
-    print(f"  has_matl_station    {getattr(info, 'has_matl_station', None)}  (raw flag)")
-    print(f"  material station    {has_material_station(info)}  (what the integration gates on)")
     print(f"  state               {getattr(info, 'machine_state', None)}")
 
+    # Slot colors feed the material mappings below; capability flags belong in
+    # scripts/capability_probe.py.
     station = getattr(info, "matl_station_info", None)
     for slot in getattr(station, "slot_infos", None) or []:
         print(
@@ -183,57 +183,6 @@ def report_files(entries, info) -> None:
             )
 
 
-async def report_raw_detail(client: FlashForgeClient) -> None:
-    """Dump the untouched /detail payload and inspect the Material Station keys.
-
-    ``FFMachineInfo.has_matl_station`` is a straight copy of the raw
-    ``hasMatlStation`` field. The Creator 5 series leaves it None while
-    ``matlStationInfo`` is fully populated, so this shows whether the printer
-    omits the flag entirely or reports it under a different name.
-    """
-    payload = {
-        "serialNumber": client.serial_number,
-        "checkCode": client.check_code,
-    }
-    session = await client.get_http_session()
-    async with session.post(
-        client.get_endpoint(Endpoints.DETAIL),
-        json=payload,
-        headers={"Content-Type": "application/json"},
-    ) as response:
-        print(f"\nRaw POST {Endpoints.DETAIL} -> HTTP {response.status}")
-        data = await response.json(content_type=None)
-
-    print(json.dumps(data, indent=2, ensure_ascii=False)[:6000])
-
-    detail = data.get("detail") if isinstance(data, dict) else None
-    if not isinstance(detail, dict):
-        print("\n  No 'detail' object in the response.")
-        return
-
-    print("\nMaterial Station keys in the raw /detail payload:")
-    print(f"  'hasMatlStation' present  {'hasMatlStation' in detail}")
-    if "hasMatlStation" in detail:
-        print(f"  hasMatlStation            {detail['hasMatlStation']!r}")
-    print(f"  'matlStationInfo' present {'matlStationInfo' in detail}")
-    station = detail.get("matlStationInfo")
-    if isinstance(station, dict):
-        print(f"  slotCnt                   {station.get('slotCnt')!r}")
-        print(f"  slotInfos entries         {len(station.get('slotInfos') or [])}")
-
-    # Any key containing "matl"/"station" the model doesn't declare - would
-    # reveal the flag hiding behind a different name on this firmware.
-    known = set(FFPrinterDetail.model_fields) | {
-        field.alias for field in FFPrinterDetail.model_fields.values() if field.alias
-    }
-    extras = sorted(
-        key
-        for key in detail
-        if key not in known and ("matl" in key.lower() or "station" in key.lower())
-    )
-    print(f"  undeclared matl/station keys {extras or 'none'}")
-
-
 async def report_thumbnail(client: FlashForgeClient, file_name: str, out: str | None) -> None:
     """Check whether /gcodeThumb serves a thumbnail for an arbitrary stored file.
 
@@ -299,7 +248,7 @@ async def main() -> None:
     parser.add_argument(
         "--raw",
         action="store_true",
-        help="dump the untouched /detail and /gcodeList payloads and the parse results",
+        help="dump the untouched /gcodeList payload and the model parse result",
     )
     parser.add_argument(
         "--thumb",
@@ -330,7 +279,6 @@ async def main() -> None:
         report_files(entries, info)
 
         if args.raw:
-            await report_raw_detail(client)
             await report_raw(client)
 
         if args.thumb:

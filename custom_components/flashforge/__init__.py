@@ -46,13 +46,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     override_led_availability = entry.options.get(CONF_OVERRIDE_LED_AVAILABILITY, False)
 
-    # Create FlashForge client
+    # Create FlashForge client. The library distinguishes "no override" (None)
+    # from "override to off" (False): passing the unset option through as False
+    # would pin led_control to False and hide the LED switch on every printer,
+    # whatever /product reported. Only force the capability when asked to.
     client = FlashForgeClient(
         ip_address=ip_address,
         serial_number=serial_number,
         check_code=check_code,
         options=FiveMClientConnectionOptions(
-            led_control_override=override_led_availability,
+            led_control_override=True if override_led_availability else None,
         ),
     )
 

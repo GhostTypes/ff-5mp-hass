@@ -361,7 +361,8 @@ pytest tests/unit/test_sensor_value_functions.py -v
 ### Testing Utilities
 
 - **Discovery diagnostics** – `scripts/test_discovery.py` and `scripts/discovery_probe.py` help debug LAN communication without HA.
-- **File list / print start** – `scripts/file_print_probe.py` runs the integration's own `print_job` code against a real printer without a HA runtime (it borrows `tests/ha_mocks.py`). Read-only by default; `--raw` dumps the untouched `/gcodeList` payload and how the library's pydantic models parse it; `--print <file> --yes` actually starts a print.
+- **File list / print start** – `scripts/file_print_probe.py` runs the integration's own `print_job` code against a real printer without a HA runtime (it borrows `tests/ha_mocks.py`). Read-only by default; `--raw` dumps the untouched `/gcodeList` payload and how the library's pydantic models parse it; `--thumb <file>` checks the per-file preview; `--print <file> --yes` actually starts a print.
+- **Capability diagnosis** – `scripts/capability_probe.py` dumps the raw `/detail` and `/product` payloads next to the flags entities are gated on (`led_control`, `has_material_station()`, door/camera). Use it whenever an entity is unexpectedly greyed out, before assuming the printer lacks the feature. `--led on|off` sends `lightControl_cmd` with the capability guard forced open.
 - **Hardware caveat** – Full verification requires a FlashForge printer with LAN mode enabled; simulated runs only confirm flow logic.
 
 ## Implementation Guard Rails
