@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The LED switch is no longer greyed out on every printer.** The "Always show LED switch" option was passed to the library as `led_control_override` using its unset value `False`. That parameter is tri-state — `None` means "no override", `True` forces the capability on, and `False` forces it **off** — so with the option switched off, which is the default, the integration overrode the printer's own correct capability report and pinned `client.led_control` to `False` on every model. The switch stayed unavailable, and the library additionally refused `set_led_on()` / `set_led_off()` internally, which made enabling the override look like the only way to get a working switch: `True` was the only value that got past the veto. The option now sends `None` when off and `True` only when the user asks for it, which is what it was always meant to do. Reported and diagnosed on a Creator 5 Pro, where `/product` correctly reports `lightCtrlState: 1` all along.
+
 ## [1.3.1] - 2026-07-23
 
 ### Fixed
