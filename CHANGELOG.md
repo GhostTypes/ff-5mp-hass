@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 - The printer's HTTP API only reports its most recent files (10 on current firmware); older files can still be printed by passing `file_name` to `flashforge.print_file`. The TCP full-directory listing is deliberately not used — this integration stays HTTP-only.
 - Per-file metadata depends on the model: the AD5X returns `gcodeListDetail` with print time, filament weight, and per-tool material data, while the Creator 5 series (verified on a Creator 5 Pro, firmware PID 41) returns plain file names. On those printers multi-material files are therefore sent without mappings and the printer uses the tool/slot assignment stored in the file. `scripts/file_print_probe.py` dumps what a given printer actually reports.
+- Hardware-verified on a Creator 5 Pro: starting a single- and a three-material file from Home Assistant works, the printer accepts the job and begins printing. The run was cancelled shortly after the start, so the resulting tool-to-slot **color assignment itself has not been confirmed end to end** — only that the firmware accepts the job without mappings.
 
 ## [1.3.1] - 2026-07-23
 

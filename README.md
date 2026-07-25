@@ -344,7 +344,8 @@ file's own tool data combined with the colors the printer reports for the loaded
 but only on printers that report that tool data (the AD5X). If the data is present but
 incomplete, the print is refused with an error rather than mapping materials by guesswork.
 The Creator 5 series reports no per-file tool data at all, so multi-material files are sent
-without mappings and the printer uses the tool/slot assignment stored in the file itself.
+without mappings and the printer uses the tool/slot assignment stored in the file itself —
+verified on a Creator 5 Pro, which accepted and started a three-material file this way.
 
 The file list is refreshed every 60 seconds. To refresh it immediately (e.g. right after an
 upload), call `homeassistant.update_entity` on `select.flashforge_print_file`.
