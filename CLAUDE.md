@@ -84,12 +84,12 @@ Treat this file as the living source of truth for workflows and expectations—u
 - `switch.py` – LED switch with client capability check (capability check can be overridden via options).
 - `select.py` – Filtration mode select (Off / Internal / External, AD5X only) and the print file select (`FlashForgeFileSelect`, options = the printer's file list, metadata in `extra_state_attributes`). Also registers the `flashforge.print_file` entity service.
 - `button.py` – Pause / resume / cancel / clear-status commands plus `FlashForgePrintSelectedFileButton`; request a refresh after each action.
-- `print_job.py` – Per-model dispatch for starting a file already on the printer (`start_creator5_job` / AD5X single+multi color / `print_local_file`) and `build_material_mappings()`, which derives Material Station mappings from the file's tool data plus the printer's slot colors. Raises `HomeAssistantError` instead of guessing an incomplete mapping.
+- `print_job.py` – Per-model dispatch for starting a file already on the printer (`start_creator5_job` / AD5X single+multi color / `print_local_file`) and `build_material_mappings()`, which derives Material Station mappings from the file's tool data plus the printer's slot colors. Raises `ServiceValidationError` instead of guessing an incomplete mapping. **Per-file metadata is model-dependent**: the AD5X returns `gcodeListDetail` (print time, weight, per-tool material data), a Creator 5 Pro returns plain file names — verified on hardware with `scripts/file_print_probe.py`. Unknown values must stay unknown (`select.file_attributes()` omits them); treating them as `0`/`False` would make a multi-material file look single-material.
 - `services.yaml` – Service definition for `flashforge.print_file` (keep in sync with the `services` block in `strings.json`).
 - `camera.py` – MJPEG camera entity (`http://<ip>:8080/?action=stream` by default).
 - `image.py` – Hosts the active-print g-code thumbnail entity AND the 4 Material Station slot swatch entities (AD5X / Creator 5 series). Swatches are PNG-encoded by `render_swatch_bytes()` (Pillow) inside an executor; both entity types cache rendered bytes and only invalidate on input change.
 - `diagnostics.py` – HA diagnostics download payload, with `check_code`, `serial_number`, MAC/IP, and cloud registration codes redacted.
-- `util.py` – Shared helpers: `async_close_flashforge_client()` for HTTP session disposal, `build_device_info()` for the per-platform device-info dict.
+- `util.py` – Shared helpers: `async_close_flashforge_client()` for HTTP session disposal, `build_device_info()` for the per-platform device-info dict, `has_material_station()` for Material Station capability detection (see the guard rails — the raw `has_matl_station` flag is unreliable).
 - `strings.json` / `translations/en.json` – Keep UI copy synchronized between minimal strings and translation files. Every entity carries a `translation_key`; `name`s never set manually on entities.
 
 ## External Dependencies & Linked Projects
@@ -286,7 +286,7 @@ pytest tests/unit/ --cov=custom_components.flashforge --cov-report=term-missing
 pytest tests/unit/test_sensor_value_functions.py -v
 ```
 
-**Current coverage (147 tests total):**
+**Current coverage (161 tests total):**
 - `tests/unit/test_discovery.py` – printer discovery protocol
 - `tests/unit/test_sensor_value_functions.py` – sensor value extraction
 - `tests/unit/test_binary_sensor_value_functions.py` – binary sensor logic
@@ -301,6 +301,7 @@ pytest tests/unit/test_sensor_value_functions.py -v
 - `tests/unit/test_file_list_coordinator.py` – local file list fetch, filtering, and error paths
 - `tests/unit/test_print_job.py` – per-model print-start dispatch and Material Station mapping
 - `tests/unit/test_print_file_entities.py` – print file select + print button behavior
+- `tests/unit/test_material_station_gating.py` – Material Station capability detection (Creator 5 Pro reports no `hasMatlStation` flag) and deferred entity creation for image + sensor platforms
 
 **Test dependencies** (`requirements-test.txt`):
 - Core: `pytest`, `pytest-asyncio`, `pytest-cov`
@@ -360,6 +361,7 @@ pytest tests/unit/test_sensor_value_functions.py -v
 ### Testing Utilities
 
 - **Discovery diagnostics** – `scripts/test_discovery.py` and `scripts/discovery_probe.py` help debug LAN communication without HA.
+- **File list / print start** – `scripts/file_print_probe.py` runs the integration's own `print_job` code against a real printer without a HA runtime (it borrows `tests/ha_mocks.py`). Read-only by default; `--raw` dumps the untouched `/gcodeList` payload and how the library's pydantic models parse it; `--print <file> --yes` actually starts a print.
 - **Hardware caveat** – Full verification requires a FlashForge printer with LAN mode enabled; simulated runs only confirm flow logic.
 
 ## Implementation Guard Rails
@@ -369,6 +371,8 @@ pytest tests/unit/test_sensor_value_functions.py -v
   - `config_flow.py` `_is_supported_detail()` reads the raw `/detail` payload during pairing and rejects PIDs not in `SUPPORTED_PIDS = {35, 36, 38}`. This is the early gate — runs before any `FFMachineInfo` parsing happens.
   - The library (`flashforge-python-api>=1.2.3`) populates `FFMachineInfo.is_pro` / `is_ad5x` / `pid` from the same value. This is the runtime gate — used by `switch.py` for LED / filtration availability.
   - Both gates are needed: the config-flow gate stops unsupported hardware from being added at all; the runtime gate keeps capability flags accurate after pairing. Do NOT substring-match `info.name` — it's user-mutable and broke detection in v1.1.8 (see issue #13 / v1.1.9 fix). When new modern PIDs ship, update `SUPPORTED_PIDS` here AND coordinate a library bump.
+- **Capability flags: never trust a raw `/detail` field on its own** – Several `FFMachineInfo` fields are straight copies of the printer's JSON and are simply absent on some models. `has_matl_station` is the known case: a Creator 5 Pro (pid 41) leaves `hasMatlStation` out of `/detail` entirely (it parses as `None`) while `matlStationInfo` reports four loaded slots, so gating on the flag hid the Material Station entities on exactly the models v1.3.0 added them for. Gate on `util.has_material_station()`, which also accepts populated slot data as proof. When adding a capability gate, derive it from the data the capability actually produces, and verify with `scripts/file_print_probe.py --raw` (dumps the untouched `/detail` and `/gcodeList` payloads) before trusting a single field.
+- **Capability-gated entities must survive a late capability** – Platforms are only set up once, so deciding availability from `coordinator.data` at setup time permanently drops entities when the first refresh failed or the capability reported in late. `sensor.py` and `image.py` re-check on coordinator updates via `coordinator.async_add_listener` and add the entities when the gate first passes; follow that pattern for new conditional entities instead of filtering once in `async_setup_entry`.
 - **Error handling** – Wrap connection issues in `ConfigEntryNotReady`, `ConnectionError`, or `UpdateFailed` so Home Assistant retries gracefully.
 - **Entity additions**
   - Add to the appropriate entity tuple.

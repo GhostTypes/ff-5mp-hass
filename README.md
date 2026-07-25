@@ -321,22 +321,30 @@ data:
   leveling_before_print: true    # optional, defaults to the integration option
 ```
 
-Each file's metadata is available for cards and templates:
+Whatever metadata the printer reports per file is available for cards and templates:
 
 ```yaml
 {{ state_attr('select.flashforge_print_file', 'files') }}
+# AD5X (reports gcodeListDetail):
 # [{'name': 'benchy.3mf', 'printing_time': 3600, 'filament_weight': 25.5,
 #   'tool_count': 1, 'uses_material_station': False}, ...]
+# Creator 5 / 5 Pro (reports file names only):
+# [{'name': 'benchy.3mf'}, ...]
 ```
+
+Keys the printer does not report are omitted rather than reported as `0`/`false`.
+The Creator 5 series returns plain file names on `/gcodeList`, so print time,
+filament weight, and tool count are simply not available there.
 
 **Bed leveling** before a print is off by default and can be enabled in the integration's
 **Configure** dialog, or per call via `leveling_before_print`.
 
-**Material Station files** (AD5X / Creator 5 series) are started with the per-tool material
-mappings derived from the file's own tool data combined with the colors the printer reports
-for the loaded slots. If that information is incomplete, the print is refused with an error
-rather than mapping materials by guesswork — start such a print from your slicer or the
-FlashForge app instead.
+**Material Station files** are started with per-tool material mappings derived from the
+file's own tool data combined with the colors the printer reports for the loaded slots —
+but only on printers that report that tool data (the AD5X). If the data is present but
+incomplete, the print is refused with an error rather than mapping materials by guesswork.
+The Creator 5 series reports no per-file tool data at all, so multi-material files are sent
+without mappings and the printer uses the tool/slot assignment stored in the file itself.
 
 The file list is refreshed every 60 seconds. To refresh it immediately (e.g. right after an
 upload), call `homeassistant.update_entity` on `select.flashforge_print_file`.

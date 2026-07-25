@@ -7,7 +7,7 @@ import logging
 from typing import Any
 
 from flashforge import FlashForgeClient
-from flashforge.models import FFMachineInfo
+from flashforge.models import FFGcodeFileEntry, FFMachineInfo
 import voluptuous as vol
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
@@ -37,6 +37,26 @@ PRINT_FILE_SCHEMA = {
     vol.Optional(ATTR_FILE_NAME): cv.string,
     vol.Optional(ATTR_LEVELING_BEFORE_PRINT): cv.boolean,
 }
+
+
+def file_attributes(entry: FFGcodeFileEntry) -> dict[str, Any]:
+    """Describe one file, reporting only what the printer actually told us.
+
+    ``/gcodeList`` returns per-file metadata (``gcodeListDetail``) on the AD5X,
+    but plain file names on the Creator 5 series. Absent values are left out
+    rather than reported as 0 / False, so a multi-material file on a printer
+    that reports no metadata is not mistaken for a single-material one.
+    """
+    attributes: dict[str, Any] = {"name": entry.gcode_file_name}
+    if entry.printing_time:
+        attributes["printing_time"] = entry.printing_time
+    if entry.total_filament_weight is not None:
+        attributes["filament_weight"] = entry.total_filament_weight
+    if entry.gcode_tool_cnt is not None:
+        attributes["tool_count"] = entry.gcode_tool_cnt
+    if entry.use_matl_station is not None:
+        attributes["uses_material_station"] = entry.use_matl_station
+    return attributes
 
 
 @dataclass
@@ -224,16 +244,7 @@ class FlashForgeFileSelect(
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the metadata the printer reports for each file."""
         return {
-            "files": [
-                {
-                    "name": entry.gcode_file_name,
-                    "printing_time": entry.printing_time,
-                    "filament_weight": entry.total_filament_weight,
-                    "tool_count": entry.gcode_tool_cnt,
-                    "uses_material_station": bool(entry.use_matl_station),
-                }
-                for entry in self.coordinator.data or []
-            ]
+            "files": [file_attributes(entry) for entry in self.coordinator.data or []]
         }
 
     async def async_select_option(self, option: str) -> None:

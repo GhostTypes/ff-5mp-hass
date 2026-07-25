@@ -42,7 +42,7 @@ from flashforge import (  # noqa: E402
     PrinterDiscovery,
 )
 from flashforge.api.constants.endpoints import Endpoints  # noqa: E402
-from flashforge.models.responses import GCodeListResponse  # noqa: E402
+from flashforge.models.responses import FFPrinterDetail, GCodeListResponse  # noqa: E402
 from pydantic import ValidationError  # noqa: E402
 
 from custom_components.flashforge.print_job import (  # noqa: E402
@@ -50,6 +50,7 @@ from custom_components.flashforge.print_job import (  # noqa: E402
     build_material_mappings,
     needs_material_station,
 )
+from custom_components.flashforge.util import has_material_station  # noqa: E402
 from homeassistant.exceptions import HomeAssistantError  # noqa: E402
 
 
@@ -98,7 +99,8 @@ def report_printer(client: FlashForgeClient, info) -> None:
     print(f"  is_creator5_pro     {client.is_creator5_pro}")
     print(f"  is_ad5x             {client.is_ad5x}")
     print(f"  http_only           {client.http_only}")
-    print(f"  has_matl_station    {getattr(info, 'has_matl_station', None)}")
+    print(f"  has_matl_station    {getattr(info, 'has_matl_station', None)}  (raw flag)")
+    print(f"  material station    {has_material_station(info)}  (what the integration gates on)")
     print(f"  state               {getattr(info, 'machine_state', None)}")
 
     station = getattr(info, "matl_station_info", None)
@@ -120,6 +122,17 @@ def report_printer(client: FlashForgeClient, info) -> None:
     print(f"  print command       {route}")
 
 
+def _has_metadata(entry) -> bool:
+    """Return True when the printer reported anything beyond the file name."""
+    return bool(
+        entry.printing_time
+        or entry.total_filament_weight is not None
+        or entry.gcode_tool_cnt is not None
+        or entry.use_matl_station is not None
+        or entry.gcode_tool_datas
+    )
+
+
 def report_files(entries, info) -> None:
     print(f"\nFiles reported by /gcodeList ({len(entries)})")
     if not entries:
@@ -128,11 +141,24 @@ def report_files(entries, info) -> None:
 
     for entry in entries:
         print(f"\n  {entry.gcode_file_name}")
+
+        # Distinguish "the printer says no" from "the printer says nothing":
+        # a names-only /gcodeList leaves every detail field unset, and calling
+        # that a single-material file would be a claim we cannot make.
+        if not _has_metadata(entry):
+            print("    no metadata reported for this file (names-only /gcodeList)")
+            print(
+                "    mapping: unknown - the file is started without mappings and "
+                "the printer uses the tool/slot assignment stored in it"
+            )
+            continue
+
         print(
             f"    print time {_fmt_duration(entry.printing_time)}   "
-            f"filament {entry.total_filament_weight or '-'} g   "
-            f"tools {entry.gcode_tool_cnt if entry.gcode_tool_cnt is not None else '-'}   "
-            f"material station {bool(entry.use_matl_station)}"
+            f"filament {entry.total_filament_weight if entry.total_filament_weight is not None else '?'} g   "
+            f"tools {entry.gcode_tool_cnt if entry.gcode_tool_cnt is not None else '?'}   "
+            f"material station "
+            f"{entry.use_matl_station if entry.use_matl_station is not None else '?'}"
         )
         for tool in entry.gcode_tool_datas or []:
             print(
@@ -142,7 +168,7 @@ def report_files(entries, info) -> None:
             )
 
         if not needs_material_station(entry):
-            print("    mapping: none needed (single-material start)")
+            print("    mapping: not needed (file does not use the material station)")
             continue
         try:
             mappings = build_material_mappings(entry, info)
@@ -155,6 +181,77 @@ def report_files(entries, info) -> None:
                 f"{mapping.material_name}  tool={mapping.tool_material_color}  "
                 f"slot={mapping.slot_material_color}"
             )
+
+
+async def report_raw_detail(client: FlashForgeClient) -> None:
+    """Dump the untouched /detail payload and inspect the Material Station keys.
+
+    ``FFMachineInfo.has_matl_station`` is a straight copy of the raw
+    ``hasMatlStation`` field. The Creator 5 series leaves it None while
+    ``matlStationInfo`` is fully populated, so this shows whether the printer
+    omits the flag entirely or reports it under a different name.
+    """
+    payload = {
+        "serialNumber": client.serial_number,
+        "checkCode": client.check_code,
+    }
+    session = await client.get_http_session()
+    async with session.post(
+        client.get_endpoint(Endpoints.DETAIL),
+        json=payload,
+        headers={"Content-Type": "application/json"},
+    ) as response:
+        print(f"\nRaw POST {Endpoints.DETAIL} -> HTTP {response.status}")
+        data = await response.json(content_type=None)
+
+    print(json.dumps(data, indent=2, ensure_ascii=False)[:6000])
+
+    detail = data.get("detail") if isinstance(data, dict) else None
+    if not isinstance(detail, dict):
+        print("\n  No 'detail' object in the response.")
+        return
+
+    print("\nMaterial Station keys in the raw /detail payload:")
+    print(f"  'hasMatlStation' present  {'hasMatlStation' in detail}")
+    if "hasMatlStation" in detail:
+        print(f"  hasMatlStation            {detail['hasMatlStation']!r}")
+    print(f"  'matlStationInfo' present {'matlStationInfo' in detail}")
+    station = detail.get("matlStationInfo")
+    if isinstance(station, dict):
+        print(f"  slotCnt                   {station.get('slotCnt')!r}")
+        print(f"  slotInfos entries         {len(station.get('slotInfos') or [])}")
+
+    # Any key containing "matl"/"station" the model doesn't declare - would
+    # reveal the flag hiding behind a different name on this firmware.
+    known = set(FFPrinterDetail.model_fields) | {
+        field.alias for field in FFPrinterDetail.model_fields.values() if field.alias
+    }
+    extras = sorted(
+        key
+        for key in detail
+        if key not in known and ("matl" in key.lower() or "station" in key.lower())
+    )
+    print(f"  undeclared matl/station keys {extras or 'none'}")
+
+
+async def report_thumbnail(client: FlashForgeClient, file_name: str, out: str | None) -> None:
+    """Check whether /gcodeThumb serves a thumbnail for an arbitrary stored file.
+
+    The integration only ever asks for the *currently printing* file. The
+    Creator 5 lists /gcodeThumb among its endpoints, so a per-file preview may
+    be possible even on printers whose /gcodeList carries no metadata.
+    """
+    print(f"\nRequesting {Endpoints.GCODE_THUMB} for '{file_name}'")
+    data = await client.files.get_gcode_thumbnail(file_name)
+    if not data:
+        print("  no thumbnail returned (endpoint unsupported, or none stored).")
+        return
+
+    kind = "PNG" if data[:8] == b"\x89PNG\r\n\x1a\n" else f"unknown ({data[:8]!r})"
+    print(f"  received {len(data)} bytes, format: {kind}")
+    if out:
+        Path(out).write_bytes(data)
+        print(f"  written to {out}")
 
 
 async def report_raw(client: FlashForgeClient) -> None:
@@ -202,8 +299,14 @@ async def main() -> None:
     parser.add_argument(
         "--raw",
         action="store_true",
-        help="dump the untouched /gcodeList payload and the model parse result",
+        help="dump the untouched /detail and /gcodeList payloads and the parse results",
     )
+    parser.add_argument(
+        "--thumb",
+        metavar="FILE",
+        help="ask /gcodeThumb for this stored file's preview image",
+    )
+    parser.add_argument("--thumb-out", metavar="PATH", help="save the --thumb image here")
     parser.add_argument("--print", dest="print_file", help="START a print of this file")
     parser.add_argument("--leveling", action="store_true", help="level the bed first")
     parser.add_argument("--yes", action="store_true", help="confirm the print start")
@@ -227,7 +330,11 @@ async def main() -> None:
         report_files(entries, info)
 
         if args.raw:
+            await report_raw_detail(client)
             await report_raw(client)
+
+        if args.thumb:
+            await report_thumbnail(client, args.thumb, args.thumb_out)
 
         if not args.print_file:
             print("\nRead-only run. Pass --print <file> --yes to start a print.")

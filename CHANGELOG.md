@@ -9,15 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Local file list and print start.** The files stored on the printer are now visible in Home Assistant and a print can be started from them:
-  - `select.<printer>_print_file` lists the printer's files (from the HTTP `/gcodeList` endpoint) and records which one to print. Each file's print time, filament weight, tool count, and Material Station flag are exposed via `extra_state_attributes["files"]` for cards and templates.
+  - `select.<printer>_print_file` lists the printer's files (from the HTTP `/gcodeList` endpoint) and records which one to print. Whatever per-file metadata the printer reports — print time, filament weight, tool count, Material Station flag — is exposed via `extra_state_attributes["files"]` for cards and templates. Values the printer does not report are omitted rather than reported as `0`/`false`.
   - `button.<printer>_print_selected_file` starts the selected file. It stays unavailable while no file is selected.
   - `flashforge.print_file` service (targets the print file select entity) with optional `file_name` and `leveling_before_print` fields, so automations can start any file on the printer — including ones outside the reported list.
   - New option **"Level the bed before starting a print"** (default off) supplies the default for the button and the service.
-  - Material Station files (AD5X / Creator 5 series) are started with the per-tool mappings derived from the file's own tool data plus the colors the printer reports for the loaded slots. When that data is incomplete the print is refused with an error telling the user to start it from the slicer instead of guessing a mapping.
+  - Material Station files are started with the per-tool mappings derived from the file's own tool data plus the colors the printer reports for the loaded slots. When that data is present but incomplete the print is refused with an error telling the user to start it from the slicer instead of guessing a mapping.
 - The file list is polled by its own coordinator every 60 s (independent of the machine-state interval) and is included in diagnostics.
+
+### Fixed
+- **Material Station entities now appear on the Creator 5 series.** The four slot swatches (`image.<printer>_ifs_slot_1..4`) and the **Active Material Station Slot** sensor were gated on `FFMachineInfo.has_matl_station`, which is a straight copy of the raw `hasMatlStation` field from `/detail`. A Creator 5 Pro does not report that field at all — verified against real hardware (pid 41, firmware 1.9.4): the `hasMatlStation` key is absent from `/detail` entirely, under any name, while `matlStationInfo` reports `slotCnt: 4` and four loaded slots. The flag therefore parsed as `None`, the entities were never created, and the v1.3.0 change that moved the gate off `is_ad5x` had no effect. Capability detection now lives in `util.has_material_station()`, which accepts populated slot data (`slotCnt` / `slotInfos`) as proof of the station, the same way the library's own AD5X heuristic does.
+- **Capability-gated entities are no longer decided once at setup.** The Material Station slot images and every `availability_fn`-gated sensor are now also added when the capability first shows up on a later refresh, so a station that reports in after the first poll — or a first refresh that failed outright — no longer leaves the printer permanently without those entities.
 
 ### Notes
 - The printer's HTTP API only reports its most recent files (10 on current firmware); older files can still be printed by passing `file_name` to `flashforge.print_file`. The TCP full-directory listing is deliberately not used — this integration stays HTTP-only.
+- Per-file metadata depends on the model: the AD5X returns `gcodeListDetail` with print time, filament weight, and per-tool material data, while the Creator 5 series (verified on a Creator 5 Pro, firmware PID 41) returns plain file names. On those printers multi-material files are therefore sent without mappings and the printer uses the tool/slot assignment stored in the file. `scripts/file_print_probe.py` dumps what a given printer actually reports.
 
 ## [1.3.1] - 2026-07-23
 

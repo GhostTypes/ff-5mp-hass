@@ -26,7 +26,7 @@ from homeassistant.const import (
     UnitOfTemperature,
     UnitOfTime,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -34,7 +34,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import FlashForgeDataUpdateCoordinator
-from .util import build_device_info
+from .util import build_device_info, has_material_station
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def _completion_time(data: FFMachineInfo) -> datetime | None:
 
 def _active_ifs_slot(data: FFMachineInfo) -> int | None:
     """Return the active Material Station slot (1-4), 0 when idle, None when absent."""
-    if not getattr(data, "has_matl_station", False):
+    if not has_material_station(data):
         return None
     station = getattr(data, "matl_station_info", None)
     if station is None:
@@ -298,7 +298,7 @@ _BASE_SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = (
         icon="mdi:tray-full",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=_active_ifs_slot,
-        availability_fn=lambda data: bool(getattr(data, "has_matl_station", False)),
+        availability_fn=has_material_station,
     ),
     FlashForgeSensorEntityDescription(
         key="lifetime_filament",
@@ -418,15 +418,41 @@ async def async_setup_entry(
     ]
     printer_name: str = hass.data[DOMAIN][entry.entry_id]["name"]
 
-    data = coordinator.data
-    entities = [
+    async_add_entities(
         FlashForgeSensor(coordinator, description, printer_name, entry.entry_id)
         for description in SENSORS
         if description.availability_fn is None
-        or (data is not None and description.availability_fn(data))
+    )
+
+    pending = [
+        description for description in SENSORS if description.availability_fn is not None
     ]
 
-    async_add_entities(entities)
+    @callback
+    def _async_add_gated_sensors() -> None:
+        """Add capability-gated sensors as soon as the printer reports them.
+
+        Model-identity gates settle on the first refresh, but the Material
+        Station gate does not: a poll can land before the station reports in,
+        and the first refresh may have failed outright. Re-check on every update
+        so a late-reporting capability still gets its entity.
+        """
+        data = coordinator.data
+        if data is None:
+            return
+        ready = [d for d in pending if d.availability_fn(data)]
+        if not ready:
+            return
+        for description in ready:
+            pending.remove(description)
+        async_add_entities(
+            FlashForgeSensor(coordinator, description, printer_name, entry.entry_id)
+            for description in ready
+        )
+
+    _async_add_gated_sensors()
+    if pending:
+        entry.async_on_unload(coordinator.async_add_listener(_async_add_gated_sensors))
 
 
 class FlashForgeSensor(CoordinatorEntity[FlashForgeDataUpdateCoordinator], SensorEntity):

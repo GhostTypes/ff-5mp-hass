@@ -86,6 +86,19 @@ def test_file_metadata_is_exposed_as_attributes():
 
 
 @pytest.mark.unit
+def test_unreported_metadata_is_omitted_not_faked():
+    """The Creator 5 series returns file names only - see scripts/file_print_probe.py.
+
+    Reporting 0 / False there would claim a multi-material file is a
+    single-material one, so unknown values are left out entirely.
+    """
+    names_only = FFGcodeFileEntry(gcode_file_name="deckel_mit_logo.3mf", printing_time=0)
+    select, _, _, _, _ = _build(files=[names_only])
+
+    assert select.extra_state_attributes["files"] == [{"name": "deckel_mit_logo.3mf"}]
+
+
+@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_selecting_a_file_records_it():
     """Selecting only records the choice - it does not start a print."""

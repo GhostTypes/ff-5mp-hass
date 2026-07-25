@@ -43,7 +43,14 @@ def _station_slot(machine_info: FFMachineInfo | None, slot_id: int) -> Any | Non
 
 
 def needs_material_station(file_entry: FFGcodeFileEntry | None) -> bool:
-    """Return True when the file was sliced for the Material Station."""
+    """Return True when the file was sliced for the Material Station.
+
+    This can only be answered for printers whose ``/gcodeList`` carries the
+    per-file detail (``gcodeListDetail``, e.g. the AD5X). The Creator 5 series
+    returns plain file names, so ``use_matl_station`` and the tool data are
+    unknown and this returns False - the file is then started without mappings
+    and the printer falls back to the tool/slot assignment stored in the file.
+    """
     return bool(
         file_entry is not None
         and getattr(file_entry, "use_matl_station", False)
@@ -115,7 +122,9 @@ async def async_start_local_print(
 
     ``file_entry`` is the printer's file list entry for ``file_name``, when known;
     it is what tells us whether the file needs Material Station mappings. Without
-    it the file is started as a single-material print.
+    it - and on printers that report file names only, such as the Creator 5
+    series - the file is started without mappings, leaving the printer to use the
+    tool/slot assignment stored in the file itself.
 
     Raises:
         ServiceValidationError: If no file was given or the mappings cannot be

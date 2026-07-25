@@ -10,14 +10,14 @@ from PIL import Image, ImageDraw, ImageFont
 
 from homeassistant.components.image import ImageEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import FlashForgeDataUpdateCoordinator
-from .util import build_device_info
+from .util import build_device_info, has_material_station
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,17 +45,35 @@ async def async_setup_entry(
     ]
     printer_name: str = hass.data[DOMAIN][entry.entry_id]["name"]
 
-    entities: list[ImageEntity] = [
-        FlashForgeThumbnailImage(hass, coordinator, printer_name, entry.entry_id)
-    ]
-    if coordinator.data is not None and getattr(coordinator.data, "has_matl_station", False):
-        entities.extend(
+    async_add_entities(
+        [FlashForgeThumbnailImage(hass, coordinator, printer_name, entry.entry_id)]
+    )
+
+    slots_added = False
+
+    @callback
+    def _async_add_slot_images() -> None:
+        """Add the slot swatches once the printer reports a Material Station.
+
+        The station is not always visible on the first refresh (a poll can land
+        before the station reports in, and the first refresh may have failed
+        outright), so keep watching the coordinator instead of deciding once at
+        setup and leaving a Creator 5 / AD5X permanently without the entities.
+        """
+        nonlocal slots_added
+        if slots_added or not has_material_station(coordinator.data):
+            return
+        slots_added = True
+        async_add_entities(
             FlashForgeMaterialStationSlotImage(
                 hass, coordinator, printer_name, entry.entry_id, slot_id
             )
             for slot_id in range(1, IFS_SLOT_COUNT + 1)
         )
-    async_add_entities(entities)
+
+    _async_add_slot_images()
+    if not slots_added:
+        entry.async_on_unload(coordinator.async_add_listener(_async_add_slot_images))
 
 
 # --------------------------------------------------------------------------- #
@@ -246,7 +264,7 @@ class FlashForgeMaterialStationSlotImage(
 
     def _slot(self) -> Any | None:
         data = self.coordinator.data
-        if data is None or not getattr(data, "has_matl_station", False):
+        if not has_material_station(data):
             return None
         station = getattr(data, "matl_station_info", None)
         if station is None:
@@ -273,8 +291,7 @@ class FlashForgeMaterialStationSlotImage(
     def available(self) -> bool:
         if not self.coordinator.last_update_success:
             return False
-        data = self.coordinator.data
-        return bool(data and getattr(data, "has_matl_station", False))
+        return has_material_station(self.coordinator.data)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

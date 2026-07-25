@@ -49,6 +49,13 @@ class CoordinatorEntity(Entity):
         """Make class subscriptable for type hints like CoordinatorEntity[Coordinator]."""
         return cls
 
+    async def async_added_to_hass(self) -> None:
+        """Stub for the registration hook; a no-op outside a running HA."""
+
+    def _handle_coordinator_update(self) -> None:
+        """Mirror HA's behavior: a coordinator update writes the state back."""
+        self.async_write_ha_state()
+
 
 class DataUpdateCoordinator:
     """Stub for homeassistant.helpers.update_coordinator.DataUpdateCoordinator."""
@@ -108,6 +115,16 @@ class SwitchEntity(Entity):
     """Stub for homeassistant.components.switch.SwitchEntity."""
 
     pass
+
+
+class ImageEntity(Entity):
+    """Stub for homeassistant.components.image.ImageEntity."""
+
+    _attr_image_last_updated = None
+
+    def __init__(self, hass=None) -> None:
+        """Initialize the image entity."""
+        self.hass = hass
 
 
 class Camera(Entity):
@@ -396,6 +413,10 @@ def mock_homeassistant():
     light_module.LightEntity = LightEntity
     light_module.ColorMode = ColorMode
     sys.modules["homeassistant.components.light"] = light_module
+
+    image_module = MagicMock()
+    image_module.ImageEntity = ImageEntity
+    sys.modules["homeassistant.components.image"] = image_module
 
     camera_module = MagicMock()
     camera_module.Camera = Camera

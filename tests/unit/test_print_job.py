@@ -86,6 +86,12 @@ def test_material_station_detection():
     )
     # A plain multi-tool file that does not use the station prints as-is.
     assert needs_material_station(_file_entry(tools=[_tool()])) is False
+    # Creator 5 series: /gcodeList reports names only, so nothing is known about
+    # the file. It is started as-is and the printer uses the assignment stored
+    # in the file - we must not invent a mapping here.
+    assert needs_material_station(FFGcodeFileEntry(
+        gcode_file_name="deckel_mit_logo.3mf", printing_time=0
+    )) is False
 
 
 @pytest.mark.unit
