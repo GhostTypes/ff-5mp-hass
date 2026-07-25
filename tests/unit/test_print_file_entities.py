@@ -18,7 +18,7 @@ from custom_components.flashforge.const import CONF_LEVELING_BEFORE_PRINT
 from custom_components.flashforge.coordinator import FlashForgeFileListCoordinator
 from custom_components.flashforge.select import FlashForgeFileSelect
 from flashforge.models import FFGcodeFileEntry
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 
 def _entry(name: str, printing_time: int = 3600) -> FFGcodeFileEntry:
@@ -109,9 +109,9 @@ async def test_selecting_a_file_records_it():
     assert file_coordinator.selected_file == "bracket.gcode"
     assert select.current_option == "bracket.gcode"
     client.job_control.assert_not_called()
-    # The print button's availability follows the selection, so it has to be
-    # told about it right away instead of waiting for the next poll.
-    file_coordinator.async_update_listeners.assert_called_once()
+    # Selecting must not touch the button. It is stateless, so rewriting its
+    # state shows up in the logbook as a press that never happened.
+    file_coordinator.async_update_listeners.assert_not_called()
     assert button.available is True
 
 
@@ -191,18 +191,21 @@ async def test_print_file_service_without_a_file_errors():
 
 
 @pytest.mark.unit
-def test_button_needs_a_selected_file():
-    """Without a selection there is nothing to print."""
+def test_button_availability_does_not_follow_the_selection():
+    """A button is stateless: every state write reads as a press in the logbook.
+
+    Availability therefore means "the printer is reachable" only - gating it on
+    the selection made selecting a file emit a phantom "pressed" entry.
+    """
     _, button, file_coordinator, _, _ = _build()
 
-    assert button.available is False
+    assert button.available is True
 
     file_coordinator.selected_file = "benchy.3mf"
     assert button.available is True
 
-    # A selection that is no longer on the printer keeps the button disabled.
     file_coordinator.selected_file = "gone.gcode"
-    assert button.available is False
+    assert button.available is True
 
 
 @pytest.mark.unit
@@ -217,6 +220,17 @@ def test_button_unavailable_when_the_printer_is_unreachable():
     machine_coordinator.last_update_success = True
     file_coordinator.last_update_success = False
     assert button.available is False
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_button_with_a_stale_selection_errors():
+    """A file deleted on the printer must not be sent as a print job."""
+    _, button, file_coordinator, _, _ = _build()
+    file_coordinator.selected_file = "gone.gcode"
+
+    with pytest.raises(ServiceValidationError):
+        await button.async_press()
 
 
 @pytest.mark.unit

@@ -253,8 +253,10 @@ class FlashForgeFileSelect(
             raise ServiceValidationError(f"'{option}' is not a file on the printer")
 
         self.coordinator.selected_file = option
-        # Also refreshes the print button, whose availability follows the selection.
-        self.coordinator.async_update_listeners()
+        # Only this entity's state changed. Notifying the coordinator's listeners
+        # would also rewrite the stateless print button's state, which the
+        # logbook reports as a button press that never happened.
+        self.async_write_ha_state()
 
     async def async_print_file(
         self,

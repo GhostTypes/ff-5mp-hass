@@ -305,8 +305,8 @@
 </div>
 
 `select.flashforge_print_file` lists the files on the printer and records which one you want
-to print; `button.flashforge_print_selected_file` starts it. The button stays unavailable
-until a file is selected.
+to print; `button.flashforge_print_selected_file` starts it. Pressing it without a selection
+reports an error instead of starting anything.
 
 The printer's HTTP API reports its **most recent files** (10 on current firmware), so the
 dropdown is not a full directory listing. Files outside that list can still be printed by

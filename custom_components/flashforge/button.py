@@ -158,20 +158,25 @@ class FlashForgePrintSelectedFileButton(
 
     @property
     def available(self) -> bool:
-        """Return if a file is selected and the printer is reachable."""
-        selected = self.coordinator.selected_file
+        """Return if the printer is reachable.
+
+        Deliberately not tied to the file selection: availability means "we can
+        reach the device", and a button is stateless, so every write of its state
+        reads as a press in the logbook. Pressing without a selection raises a
+        ServiceValidationError instead.
+        """
         return (
             self.coordinator.last_update_success
             and self._machine_coordinator.last_update_success
-            and selected is not None
-            and selected in self.coordinator.file_names
         )
 
     async def async_press(self) -> None:
         """Start printing the selected file."""
         selected = self.coordinator.selected_file
-        if selected is None:
-            raise ServiceValidationError("No file selected to print")
+        if selected is None or selected not in self.coordinator.file_names:
+            raise ServiceValidationError(
+                "No file selected to print - pick one on the print file entity first"
+            )
 
         leveling_before_print = self._entry.options.get(
             CONF_LEVELING_BEFORE_PRINT, DEFAULT_LEVELING_BEFORE_PRINT

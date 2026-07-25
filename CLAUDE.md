@@ -350,7 +350,7 @@ pytest tests/unit/test_sensor_value_functions.py -v
    - Binary sensors: printing, online, error, paused.
    - Switch: LED (may show unavailable on unsupported models unless override is enabled).
    - Select: filtration mode — Off / Internal / External (AD5X only); print file — lists the printer's files.
-   - Buttons: pause, resume, cancel, clear status, print selected file (unavailable until a file is selected).
+   - Buttons: pause, resume, cancel, clear status, print selected file (errors when pressed with nothing selected).
    - Service: `flashforge.print_file` on the print file select, with and without `file_name` / `leveling_before_print`.
    - Camera: MJPEG feed reachable.
    - Image: g-code thumbnail of the active print.
