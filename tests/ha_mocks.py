@@ -97,6 +97,15 @@ class SwitchEntity(Entity):
     pass
 
 
+class ImageEntity(Entity):
+    """Stub for homeassistant.components.image.ImageEntity."""
+
+    def __init__(self, hass=None, *args, **kwargs):
+        # The real ImageEntity takes `hass` positionally and sets up verify_ssl
+        # / access-token plumbing the tests do not exercise.
+        self.hass = hass
+
+
 class Camera(Entity):
     """Stub for homeassistant.components.camera.Camera."""
 
@@ -383,6 +392,10 @@ def mock_homeassistant():
     light_module.LightEntity = LightEntity
     light_module.ColorMode = ColorMode
     sys.modules["homeassistant.components.light"] = light_module
+
+    image_module = MagicMock()
+    image_module.ImageEntity = ImageEntity
+    sys.modules["homeassistant.components.image"] = image_module
 
     camera_module = MagicMock()
     camera_module.Camera = Camera

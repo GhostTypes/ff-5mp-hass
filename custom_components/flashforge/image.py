@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from homeassistant.components.image import ImageEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -45,17 +45,34 @@ async def async_setup_entry(
     ]
     printer_name: str = hass.data[DOMAIN][entry.entry_id]["name"]
 
-    entities: list[ImageEntity] = [
-        FlashForgeThumbnailImage(hass, coordinator, printer_name, entry.entry_id)
-    ]
-    if coordinator.data is not None and getattr(coordinator.data, "has_matl_station", False):
-        entities.extend(
+    async_add_entities(
+        [FlashForgeThumbnailImage(hass, coordinator, printer_name, entry.entry_id)]
+    )
+
+    slots_added = False
+
+    @callback
+    def _async_add_slot_images() -> None:
+        """Add the slot swatches once the printer reports a Material Station.
+
+        Deciding this once at setup strands the entities permanently: platform
+        setup can run before the station has reported in, and the first refresh
+        may have failed outright. Keep watching instead.
+        """
+        nonlocal slots_added
+        if slots_added or coordinator.data is None or not coordinator.data.has_matl_station:
+            return
+        slots_added = True
+        async_add_entities(
             FlashForgeMaterialStationSlotImage(
                 hass, coordinator, printer_name, entry.entry_id, slot_id
             )
             for slot_id in range(1, IFS_SLOT_COUNT + 1)
         )
-    async_add_entities(entities)
+
+    _async_add_slot_images()
+    if not slots_added:
+        entry.async_on_unload(coordinator.async_add_listener(_async_add_slot_images))
 
 
 # --------------------------------------------------------------------------- #
@@ -246,7 +263,7 @@ class FlashForgeMaterialStationSlotImage(
 
     def _slot(self) -> Any | None:
         data = self.coordinator.data
-        if data is None or not getattr(data, "has_matl_station", False):
+        if data is None or not data.has_matl_station:
             return None
         station = getattr(data, "matl_station_info", None)
         if station is None:
@@ -274,7 +291,7 @@ class FlashForgeMaterialStationSlotImage(
         if not self.coordinator.last_update_success:
             return False
         data = self.coordinator.data
-        return bool(data and getattr(data, "has_matl_station", False))
+        return bool(data and data.has_matl_station)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
