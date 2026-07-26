@@ -6,7 +6,8 @@ Runs the integration's own code paths (``print_job.build_material_mappings``,
 HTTP requests, the parsed file list, and the derived Material Station mappings
 can be verified on real hardware from Windows.
 
-Read-only unless ``--print`` is passed.
+Read-only unless ``--print`` is passed. ``--print`` reports the job start only -
+the printer summary, file list, and the other dumps are skipped.
 
 Usage (from the repository root):
 
@@ -83,12 +84,16 @@ async def connect(ip: str, serial: str, check_code: str) -> FlashForgeClient:
         check_code=check_code,
         options=FiveMClientConnectionOptions(),
     )
-    info = await client.info.get()
-    if info is None:
-        raise SystemExit(f"No answer from {ip} - check IP, serial, and check code.")
-    client.cache_details(info)
-    if not await client.send_product_command():
-        raise SystemExit("Printer rejected the credentials (check code).")
+    try:
+        info = await client.info.get()
+        if info is None:
+            raise SystemExit(f"No answer from {ip} - check IP, serial, and check code.")
+        client.cache_details(info)
+        if not await client.send_product_command():
+            raise SystemExit("Printer rejected the credentials (check code).")
+    except BaseException:
+        await client.dispose()
+        raise
     return client
 
 
@@ -256,7 +261,11 @@ async def main() -> None:
         help="ask /gcodeThumb for this stored file's preview image",
     )
     parser.add_argument("--thumb-out", metavar="PATH", help="save the --thumb image here")
-    parser.add_argument("--print", dest="print_file", help="START a print of this file")
+    parser.add_argument(
+        "--print",
+        dest="print_file",
+        help="START a print of this file; suppresses the reports above",
+    )
     parser.add_argument("--leveling", action="store_true", help="level the bed first")
     parser.add_argument("--yes", action="store_true", help="confirm the print start")
     args = parser.parse_args()
@@ -272,25 +281,29 @@ async def main() -> None:
     try:
         info = await client.info.get()
         client.cache_details(info)
-        report_printer(client, info)
 
+        # Always needed: the entry carries the tool data the mappings derive
+        # from, and the machine info carries the slot colors.
         entries = await client.files.get_recent_file_list()
         entries = [e for e in entries or [] if e.gcode_file_name]
-        report_files(entries, info)
 
-        if args.raw:
-            await report_raw(client)
-
-        if args.thumb:
-            await report_thumbnail(client, args.thumb, args.thumb_out)
-
+        # --print keeps the output to the job itself; the reports would bury it.
         if not args.print_file:
+            report_printer(client, info)
+            report_files(entries, info)
+
+            if args.raw:
+                await report_raw(client)
+
+            if args.thumb:
+                await report_thumbnail(client, args.thumb, args.thumb_out)
+
             print("\nRead-only run. Pass --print <file> --yes to start a print.")
             return
 
         if not args.yes:
             print(
-                f"\nWould start '{args.print_file}' "
+                f"Would start '{args.print_file}' "
                 f"(leveling={args.leveling}). Re-run with --yes to actually print."
             )
             return
@@ -298,7 +311,7 @@ async def main() -> None:
         entry = next(
             (e for e in entries if e.gcode_file_name == args.print_file), None
         )
-        print(f"\nStarting '{args.print_file}' (leveling={args.leveling}) ...")
+        print(f"Starting '{args.print_file}' (leveling={args.leveling}) ...")
         await async_start_local_print(
             client,
             args.print_file,

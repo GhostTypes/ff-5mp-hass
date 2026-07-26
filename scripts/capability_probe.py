@@ -55,12 +55,16 @@ async def connect(ip: str, serial: str, check_code: str) -> FlashForgeClient:
         check_code=check_code,
         options=FiveMClientConnectionOptions(),
     )
-    info = await client.info.get()
-    if info is None:
-        raise SystemExit(f"No answer from {ip} - check IP, serial, and check code.")
-    client.cache_details(info)
-    if not await client.send_product_command():
-        raise SystemExit("Printer rejected the credentials (check code).")
+    try:
+        info = await client.info.get()
+        if info is None:
+            raise SystemExit(f"No answer from {ip} - check IP, serial, and check code.")
+        client.cache_details(info)
+        if not await client.send_product_command():
+            raise SystemExit("Printer rejected the credentials (check code).")
+    except BaseException:
+        await client.dispose()
+        raise
     return client
 
 
