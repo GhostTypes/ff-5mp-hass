@@ -2,8 +2,8 @@
 
 Guidance for AI coding assistants working in this repository.
 
-## Current State (May 2026)
-- Integration **version 1.3.0** (in-flight; not yet tagged).
+## Current State (July 2026)
+- Integration **version 1.3.2** (in-flight; 1.3.1 tagged 2026-07-23).
 - Provides a complete Home Assistant experience for FlashForge printers using the **HTTP API only**.
 - Entities shipped: **56 total** (38 sensors, 5 binary sensors, 2 switches, 4 buttons, 1 select, 1 MJPEG camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
 - Diagnostics download supported (`diagnostics.py`), with credentials and identifiers redacted.
@@ -58,7 +58,7 @@ Treat this file as the living source of truth for workflows and expectations—u
   - Entities grouped under a single device with manufacturer/model metadata.
 - **Control**
   - LED switch with capability detection (graceful "unavailable" for unsupported models, with an option to override the check).
-  - Filtration as a `select` entity with Off / Internal / External states (AD5X only).
+  - Filtration as a `select` entity with Off / Internal / External states (Adventurer 5M Pro / Creator 5 Pro only — gated on `is_pro OR is_creator5_pro`).
   - Pause / resume / cancel / clear-status buttons with post-action refresh.
   - MJPEG camera entity targeting `http://<ip>:8080/?action=stream`.
 - **Architecture**
@@ -77,10 +77,10 @@ Treat this file as the living source of truth for workflows and expectations—u
 - `__init__.py` – Config entry setup, HTTP client initialization, coordinator registration, teardown.
 - `config_flow.py` – Discovery + manual onboarding, reauth + reconfigure flows, credential validation via HTTP, options flow (scan interval + LED-availability override). Enforces `SUPPORTED_PIDS` early via `_is_supported_detail()`.
 - `coordinator.py` – `DataUpdateCoordinator` wrapping `FlashForgeClient.info.get()` with graceful error handling and cleanup.
-- `sensor.py` – 28 sensor entities (operational + diagnostic). Modify the `SENSORS` tuple, translations, and docs together when changing sensors.
-- `binary_sensor.py` – 4 machine-state binary sensors (printing, online, error, paused).
-- `switch.py` – LED switch with client capability check (capability check can be overridden via options).
-- `select.py` – Filtration mode select (Off / Internal / External, AD5X only).
+- `sensor.py` – 38 sensor entities (operational + diagnostic). `SENSORS` is composed of `_BASE_SENSORS + TOOLHEAD_SENSORS + CHAMBER_SENSORS` (per-toolhead and heated-chamber sensors are gated on the Creator 5 series). Modify the tuples, translations, and docs together when changing sensors.
+- `binary_sensor.py` – 5 machine-state binary sensors (printing, online, error, paused, door-open). `door_open` is availability-gated on `has_door_sensor` (Creator 5 Pro only).
+- `switch.py` – LED switch with client capability check (capability check can be overridden via options) and the camera switch. Descriptions carry both an `availability_fn` (greys the entity out; use when the printer may report the feature later) and a `supported_fn` (skips creating it entirely; use when the model's API cannot perform the action at all — the Creator 5 camera switch is inert, so it is never created there).
+- `select.py` – Filtration mode select (Off / Internal / External; availability gated on `is_pro OR is_creator5_pro`, i.e. Adventurer 5M Pro / Creator 5 Pro).
 - `button.py` – Pause / resume / cancel / clear-status commands; request a refresh after each action.
 - `camera.py` – MJPEG camera entity (`http://<ip>:8080/?action=stream` by default).
 - `image.py` – Hosts the active-print g-code thumbnail entity AND the 4 Material Station slot swatch entities (AD5X / Creator 5 series). Swatches are PNG-encoded by `render_swatch_bytes()` (Pillow) inside an executor; both entity types cache rendered bytes and only invalidate on input change.
@@ -237,7 +237,7 @@ The local Home Assistant instance runs in **WSL2 only** with the following setup
 1. **Implementation**
    - Keep everything async; no blocking calls inside Home Assistant callbacks.
    - Use HTTP-facing client methods (`client.info`, `client.control`, `client.job_control`, etc.).
-   - Respect capability flags (`client.led_control`, `client.filtration_control`) before exposing features.
+   - Respect capability flags (`client.led_control` for the LED switch) before exposing features. Do NOT trust the `/product`-derived `client.filtration_control` — gate filtration/TVOC/chamber-fan on model identity (`is_pro OR is_creator5_pro`) instead.
 2. **Localization & Docs**
    - Update `strings.json` and `translations/en.json` whenever UI text changes.
    - Reflect behavior changes in `README.md`, `CHANGELOG.md`, `CLAUDE.md`, and `AGENTS.md` as appropriate.
@@ -282,7 +282,7 @@ pytest tests/unit/ --cov=custom_components.flashforge --cov-report=term-missing
 pytest tests/unit/test_sensor_value_functions.py -v
 ```
 
-**Current coverage (103 tests total):**
+**Current coverage (125 tests total):**
 - `tests/unit/test_discovery.py` – printer discovery protocol
 - `tests/unit/test_sensor_value_functions.py` – sensor value extraction
 - `tests/unit/test_binary_sensor_value_functions.py` – binary sensor logic
@@ -338,13 +338,13 @@ pytest tests/unit/test_sensor_value_functions.py -v
 3. Add the integration via UI; test both discovery and manual paths.
 4. Open the created device and verify entities:
    - Sensors: machine status, nozzle temps/targets, bed temps/targets, progress, file, current/total layers, elapsed/remaining time, filament length/weight, print speed, z offset, nozzle size, filament type, lifetime stats, plus diagnostic sensors (firmware version, free disk space, error code).
-   - Binary sensors: printing, online, error, paused.
+   - Binary sensors: printing, online, error, paused, door-open (Creator 5 Pro only).
    - Switch: LED (may show unavailable on unsupported models unless override is enabled).
-   - Select: filtration mode — Off / Internal / External (AD5X only).
+   - Select: filtration mode — Off / Internal / External (Adventurer 5M Pro / Creator 5 Pro only).
    - Buttons: pause, resume, cancel, clear status.
    - Camera: MJPEG feed reachable.
    - Image: g-code thumbnail of the active print.
-   - Image (AD5X only): four IFS slot swatches (`image.*_ifs_slot_1..4`) showing material color + label, "EMPTY" tile for unloaded slots.
+   - Image (AD5X / Creator 5 series): four Material Station slot swatches (`image.*_ifs_slot_1..4`) showing material color + label, "EMPTY" tile for unloaded slots.
 5. Trigger control actions (pause/resume/cancel, switches) and ensure states refresh.
 6. Observe coordinator error handling by temporarily disconnecting the printer and confirming entities surface availability correctly.
 
@@ -356,16 +356,16 @@ pytest tests/unit/test_sensor_value_functions.py -v
 ## Implementation Guard Rails
 - **HTTP-first policy** – Do not introduce direct TCP/G-code communication here. If unavoidable, extend the API library (`ff-5mp-api-py`) and consume it via HTTP-style helpers.
 - **Coordinator as source of truth** – Entities derive state from the coordinator’s latest `FFMachineInfo`. Avoid storing custom copies of printer state in entities.
-- **PID for model identity, never the printer name** – Modern HTTP printers report a stable firmware-set integer `pid` on `/detail` (35 = Adventurer 5M, 36 = 5M Pro, 38 = AD5X). The integration enforces this in TWO places that should both stay in sync:
-  - `config_flow.py` `_is_supported_detail()` reads the raw `/detail` payload during pairing and rejects PIDs not in `SUPPORTED_PIDS = {35, 36, 38}`. This is the early gate — runs before any `FFMachineInfo` parsing happens.
-  - The library (`flashforge-python-api>=1.2.3`) populates `FFMachineInfo.is_pro` / `is_ad5x` / `pid` from the same value. This is the runtime gate — used by `switch.py` for LED / filtration availability.
+- **PID for model identity, never the printer name** – Modern HTTP printers report a stable firmware-set integer `pid` on `/detail` (35 = Adventurer 5M, 36 = 5M Pro, 38 = AD5X, 40 = Creator 5, 41 = Creator 5 Pro). The integration enforces this in TWO places that should both stay in sync:
+  - `config_flow.py` `_is_supported_detail()` reads the raw `/detail` payload during pairing and rejects PIDs not in `SUPPORTED_PIDS = {35, 36, 38, 40, 41}`. This is the early gate — runs before any `FFMachineInfo` parsing happens.
+  - The library (`flashforge-python-api>=1.3.0`) populates `FFMachineInfo.is_pro` / `is_ad5x` / `is_creator5` / `is_creator5_pro` / `pid` from the same value. This is the runtime gate — used by `switch.py` for LED availability and by `sensor.py` / `select.py` for model-identity capability gating.
   - Both gates are needed: the config-flow gate stops unsupported hardware from being added at all; the runtime gate keeps capability flags accurate after pairing. Do NOT substring-match `info.name` — it's user-mutable and broke detection in v1.1.8 (see issue #13 / v1.1.9 fix). When new modern PIDs ship, update `SUPPORTED_PIDS` here AND coordinate a library bump.
 - **Error handling** – Wrap connection issues in `ConfigEntryNotReady`, `ConnectionError`, or `UpdateFailed` so Home Assistant retries gracefully.
 - **Entity additions**
   - Add to the appropriate entity tuple.
   - Provide unique `key`, icon, units, and defensive `value_fn`.
   - Update documentation (README, CHANGELOG, CLAUDE/AGENTS) and translations.
-- **Options flow** – Currently only the scan interval. Extend cautiously to avoid breaking existing entries.
+- **Options flow** – Currently exposes the scan interval and the LED-availability override. Extend cautiously to avoid breaking existing entries.
 
 ## Release & Publishing Checklist
 1. Implement and document changes.
