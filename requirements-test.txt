@@ -16,6 +16,11 @@ flashforge-python-api>=1.3.2
 # Network interface detection (required by discovery)
 netifaces>=0.11.0
 
+# Swatch rendering in image.py. Home Assistant core ships Pillow, so it stays
+# out of the manifest requirements; the test environment has to supply it
+# itself or importing the image platform fails at collection.
+pillow>=10.0.0
+
 # NOTE: Integration tests requiring Home Assistant must run in WSL/Linux
 # Home Assistant and pytest-homeassistant-custom-component are Unix-only
 # For integration tests: see homeassistant/ directory with WSL setup
