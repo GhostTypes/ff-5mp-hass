@@ -53,7 +53,9 @@
       }
     },
     "error": {
-      "cannot_connect": "Verbindung zum Drucker fehlgeschlagen. Bitte IP-Adresse und Zugangsdaten prüfen.",
+      "cannot_connect": "Der Drucker war nicht erreichbar. Prüfe, ob die IP-Adresse stimmt, der Drucker eingeschaltet und der LAN-Modus aktiviert ist.",
+      "invalid_response": "Der Drucker hat geantwortet, aber diese Integration konnte die Antwort nicht lesen. Das ist kein Netzwerk- oder Zugangsdatenproblem, sondern ein Fehler in der Integration. Bitte melde ihn unter https://github.com/GhostTypes/ff-5mp-hass/issues und füge das Home-Assistant-Protokoll mit aktivierter Debug-Protokollierung für custom_components.flashforge bei.",
+      "invalid_auth": "Der Drucker hat Seriennummer oder Check-Code abgelehnt. Prüfe beides auf dem Display des Druckers (die Seriennummer enthält das Präfix SN).",
       "no_printers_found": "Keine FlashForge-Drucker im Netzwerk gefunden. Bitte die manuelle Einrichtung verwenden.",
       "unsupported_printers_found": "Diese Integration unterstützt nur die Modelle AD5X, Adventurer 5M, Adventurer 5M Pro, Creator 5 und Creator 5 Pro.",
       "discovery_failed": "Die Suche nach Druckern ist fehlgeschlagen. Bitte die manuelle Einrichtung verwenden.",

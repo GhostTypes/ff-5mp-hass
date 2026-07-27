@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 
-from flashforge import FlashForgeClient
+from flashforge import FlashForgeClient, FlashForgeResponseError
 from flashforge.models import FFGcodeFileEntry, FFMachineInfo
 
 from homeassistant.core import HomeAssistant
@@ -65,6 +65,21 @@ class FlashForgeDataUpdateCoordinator(DataUpdateCoordinator[FFMachineInfo]):
                     machine_info.camera_stream_url = detected_camera_stream  # type: ignore[attr-defined]
 
             return machine_info
+
+        except FlashForgeResponseError as err:
+            # The printer is reachable and answering; we could not read what it
+            # said. Logged at its own severity and with its own wording so this
+            # never again reads as "the printer is offline" in the log - that
+            # conflation is what issue #18 turned on.
+            _LOGGER.error(
+                "Printer %s answered, but its response could not be read. This is an "
+                "integration bug, not a connection problem - please report it at "
+                "https://github.com/GhostTypes/ff-5mp-hass/issues with debug logs "
+                "enabled. %s",
+                self.printer_name,
+                err,
+            )
+            raise UpdateFailed(f"Unreadable response from printer: {err}") from err
 
         except Exception as err:
             _LOGGER.error("Error communicating with printer %s: %s", self.printer_name, err)

@@ -6,6 +6,7 @@ These are pure function tests with no Home Assistant dependencies.
 import sys
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
@@ -20,6 +21,31 @@ mock_homeassistant()
 
 from custom_components.flashforge.sensor import SENSORS, _completion_time
 from flashforge.models import MachineState
+
+
+@pytest.mark.unit
+def test_chamber_sensors_gate_on_the_sensor_not_the_model():
+    """Chamber entities follow the reported sensor, not the Creator 5 badge.
+
+    The heated chamber is an option within the Creator 5 family. Firmware on a
+    unit without one reports `chamberTemp: -108` rather than omitting the field
+    (issue #18); the library normalizes that away and sets `has_chamber_sensor`
+    from what was actually reported. Gating on `is_creator5` gave those units
+    two entities pinned at 0 C.
+    """
+    from custom_components.flashforge.sensor import CHAMBER_SENSORS
+
+    chamberless_c5 = SimpleNamespace(
+        is_creator5=True, is_creator5_pro=False, has_chamber_sensor=False
+    )
+    heated_c5 = SimpleNamespace(
+        is_creator5=True, is_creator5_pro=False, has_chamber_sensor=True
+    )
+
+    assert CHAMBER_SENSORS, "expected chamber sensor descriptions"
+    for description in CHAMBER_SENSORS:
+        assert description.availability_fn(chamberless_c5) is False
+        assert description.availability_fn(heated_c5) is True
 
 
 @pytest.mark.unit

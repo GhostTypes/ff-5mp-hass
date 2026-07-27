@@ -30,6 +30,13 @@ class FlashForgeSwitchEntityDescription(SwitchEntityDescription):
     turn_on_fn: Callable[[FlashForgeClient], Any] | None = None
     turn_off_fn: Callable[[FlashForgeClient], Any] | None = None
     availability_fn: Callable[[FlashForgeClient], bool] | None = None
+    # Distinct from availability_fn on purpose. `availability_fn` greys an
+    # entity out - the right answer when the hardware could report the feature
+    # later. `supported_fn` decides whether the entity is created at all, which
+    # is the only honest answer when the model's API cannot perform the action
+    # and never will. A switch that accepts a press, returns success and changes
+    # nothing is worse than a missing one.
+    supported_fn: Callable[[FlashForgeClient], bool] | None = None
 
 
 SWITCHES: tuple[FlashForgeSwitchEntityDescription, ...] = (
@@ -49,8 +56,16 @@ SWITCHES: tuple[FlashForgeSwitchEntityDescription, ...] = (
         is_on_fn=lambda data: bool(getattr(data, "camera_stream_url", "")),
         turn_on_fn=lambda client: client.control.turn_camera_on(),
         turn_off_fn=lambda client: client.control.turn_camera_off(),
-        availability_fn=lambda client: bool(
-            getattr(client, "is_pro", False) or getattr(client, "is_creator5_pro", False)
+        availability_fn=lambda client: bool(getattr(client, "is_pro", False)),
+        # The Creator 5 series dropped stream control from its API. Verified on
+        # a Creator 5 Pro (firmware 1.9.4): `streamCtrl_cmd` with action=close
+        # answers {"code": 0, "Success"}, yet port 8080 is still serving live
+        # MJPEG frames 22s later and `cameraStreamUrl` never changes. The switch
+        # cannot reflect an off state either - `is_on_fn` reads that same
+        # always-present URL, so the next poll flips it straight back on. Inert
+        # and un-toggleable; don't create it. The camera entity is unaffected.
+        supported_fn=lambda client: not (
+            getattr(client, "is_creator5", False) or getattr(client, "is_creator5_pro", False)
         ),
     ),
 )
@@ -71,6 +86,7 @@ async def async_setup_entry(
     entities = [
         FlashForgeSwitch(coordinator, client, description, printer_name, entry.entry_id)
         for description in SWITCHES
+        if description.supported_fn is None or description.supported_fn(client)
     ]
 
     async_add_entities(entities)

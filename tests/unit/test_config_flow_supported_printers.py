@@ -72,6 +72,21 @@ def test_supported_detail_accepts_modern_printers_by_pid():
 
 
 @pytest.mark.unit
+def test_supported_detail_accepts_the_raw_payload():
+    """The gate must work on the undecoded dict, not just a parsed model.
+
+    Reading identity from raw JSON is what keeps the supported-model check ahead
+    of validation, so an unrelated bad field can no longer get a supported
+    printer rejected (issue #18).
+    """
+    assert _is_supported_detail({"pid": 40, "name": "Creator 5", "chamberTemp": -108}) is True
+    assert _is_supported_detail({"pid": 30, "name": "Adventurer 4"}) is False
+    # Name fallback works on dicts too, for firmware that omits pid.
+    assert _is_supported_detail({"name": "Adventurer 5M Pro"}) is True
+    assert _is_supported_detail({}) is False
+
+
+@pytest.mark.unit
 def test_supported_detail_falls_back_to_name_when_pid_missing():
     """Firmware that omits pid should still match on name."""
     assert _is_supported_detail(SimpleNamespace(pid=None, name="Adventurer 5M")) is True
@@ -83,11 +98,15 @@ def test_supported_detail_falls_back_to_name_when_pid_missing():
 
 
 def _make_validate_client(detail: SimpleNamespace) -> Mock:
-    """Build a Mock FlashForgeClient that returns ``detail`` from get_detail_response."""
+    """Build a Mock FlashForgeClient serving ``detail`` from get_detail_raw.
+
+    The flow reads identity from the undecoded payload, so the mock hands back a
+    dict - see `_is_supported_detail`, which accepts either form.
+    """
     machine_info = SimpleNamespace(name=detail.name)
     client = Mock()
-    client.info.get_detail_response = AsyncMock(
-        return_value=SimpleNamespace(detail=detail)
+    client.info.get_detail_raw = AsyncMock(
+        return_value={"code": 0, "detail": {"pid": detail.pid, "name": detail.name}}
     )
     client.info.get = AsyncMock(return_value=machine_info)
     client.cache_details = Mock()

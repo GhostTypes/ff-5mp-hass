@@ -17,7 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import FlashForgeDataUpdateCoordinator
-from .util import build_device_info, has_material_station
+from .util import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,13 +55,12 @@ async def async_setup_entry(
     def _async_add_slot_images() -> None:
         """Add the slot swatches once the printer reports a Material Station.
 
-        The station is not always visible on the first refresh (a poll can land
-        before the station reports in, and the first refresh may have failed
-        outright), so keep watching the coordinator instead of deciding once at
-        setup and leaving a Creator 5 / AD5X permanently without the entities.
+        Deciding this once at setup strands the entities permanently: platform
+        setup can run before the station has reported in, and the first refresh
+        may have failed outright. Keep watching instead.
         """
         nonlocal slots_added
-        if slots_added or not has_material_station(coordinator.data):
+        if slots_added or coordinator.data is None or not coordinator.data.has_matl_station:
             return
         slots_added = True
         async_add_entities(
@@ -264,7 +263,7 @@ class FlashForgeMaterialStationSlotImage(
 
     def _slot(self) -> Any | None:
         data = self.coordinator.data
-        if not has_material_station(data):
+        if data is None or not data.has_matl_station:
             return None
         station = getattr(data, "matl_station_info", None)
         if station is None:
@@ -291,7 +290,8 @@ class FlashForgeMaterialStationSlotImage(
     def available(self) -> bool:
         if not self.coordinator.last_update_success:
             return False
-        return has_material_station(self.coordinator.data)
+        data = self.coordinator.data
+        return bool(data and data.has_matl_station)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

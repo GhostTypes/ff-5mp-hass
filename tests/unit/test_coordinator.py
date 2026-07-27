@@ -15,6 +15,8 @@ from tests.ha_mocks import mock_homeassistant
 mock_homeassistant()
 
 from custom_components.flashforge.coordinator import FlashForgeDataUpdateCoordinator
+from flashforge import FlashForgeResponseError
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 
 @pytest.mark.unit
@@ -55,3 +57,45 @@ async def test_coordinator_skips_camera_detection_when_firmware_reports_stream()
     client.cache_details.assert_called_once_with(machine_info)
     client.detect_camera_stream.assert_not_awaited()
     assert result.camera_stream_url == "http://192.168.1.120:8080/?action=stream"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_unreadable_response_is_reported_as_such_not_as_a_connection_error(caplog):
+    """An unreadable payload must not be logged as a communication failure.
+
+    Both paths still raise UpdateFailed - HA should keep retrying either way,
+    since an integration update may make the payload readable. What must differ
+    is the wording, because the log is where the user (and the next bug report)
+    looks to tell an offline printer from a schema mismatch. See issue #18.
+    """
+    client = Mock()
+    client.info = Mock()
+    client.info.get = AsyncMock(
+        side_effect=FlashForgeResponseError("chamberTemp out of range")
+    )
+
+    coordinator = FlashForgeDataUpdateCoordinator(Mock(), client, "Creator 5", 10)
+
+    with pytest.raises(UpdateFailed) as excinfo:
+        await coordinator._async_update_data()
+
+    assert "Unreadable response" in str(excinfo.value)
+    assert "Error communicating" not in str(excinfo.value)
+    assert "not a connection problem" in caplog.text
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_transport_failures_keep_the_communication_wording(caplog):
+    """The other branch is unchanged - a real outage still reads like one."""
+    client = Mock()
+    client.info = Mock()
+    client.info.get = AsyncMock(side_effect=OSError("Network unreachable"))
+
+    coordinator = FlashForgeDataUpdateCoordinator(Mock(), client, "Creator 5", 10)
+
+    with pytest.raises(UpdateFailed) as excinfo:
+        await coordinator._async_update_data()
+
+    assert "Error communicating" in str(excinfo.value)

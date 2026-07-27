@@ -2,15 +2,15 @@
 
 Guidance for AI coding assistants working in this repository.
 
-## Current State (May 2026)
-- Integration **version 1.3.0** (in-flight; not yet tagged).
+## Current State (July 2026)
+- Integration **version 1.3.4** (in-flight; 1.3.3 tagged 2026-07-26).
 - Provides a complete Home Assistant experience for FlashForge printers using the **HTTP API only**.
 - Entities shipped: **58 total** (38 sensors, 5 binary sensors, 2 switches, 5 buttons, 2 selects, 1 MJPEG camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
 - One service: `flashforge.print_file` (entity service on the Local File Selection entity).
 - Diagnostics download supported (`diagnostics.py`), with credentials and identifiers redacted.
 - Reauthentication and reconfigure flows supported in addition to the original setup paths.
 - UI config flow supports automatic discovery, manual entry, credential validation, and an adjustable polling interval (5–300 s, default 10 s).
-- Depends on `flashforge-python-api>=1.3.0` from the companion repository `ff-5mp-api-py`.
+- Depends on `flashforge-python-api>=1.3.4` from the companion repository `ff-5mp-api-py`.
 
 ## Development Requirements
 - **Home Assistant Core**: 2026.4.2 (current stable)
@@ -59,7 +59,7 @@ Treat this file as the living source of truth for workflows and expectations—u
   - Entities grouped under a single device with manufacturer/model metadata.
 - **Control**
   - LED switch with capability detection (graceful "unavailable" for unsupported models, with an option to override the check).
-  - Filtration as a `select` entity with Off / Internal / External states (AD5X only).
+  - Filtration as a `select` entity with Off / Internal / External states (Adventurer 5M Pro / Creator 5 Pro only — gated on `is_pro OR is_creator5_pro`).
   - Pause / resume / cancel / clear-status buttons with post-action refresh.
   - Local file printing: a `select` listing the printer's files, a "print selected file" button, and the `flashforge.print_file` service.
   - MJPEG camera entity targeting `http://<ip>:8080/?action=stream`.
@@ -79,17 +79,17 @@ Treat this file as the living source of truth for workflows and expectations—u
 - `__init__.py` – Config entry setup, HTTP client initialization, coordinator registration, teardown.
 - `config_flow.py` – Discovery + manual onboarding, reauth + reconfigure flows, credential validation via HTTP, options flow (scan interval + LED-availability override). Enforces `SUPPORTED_PIDS` early via `_is_supported_detail()`.
 - `coordinator.py` – `FlashForgeDataUpdateCoordinator` wrapping `FlashForgeClient.info.get()` with graceful error handling and cleanup, plus `FlashForgeFileListCoordinator` polling `files.get_recent_file_list()` on the slower `FILE_LIST_SCAN_INTERVAL` (it also holds the file selected for printing and never closes the shared client).
-- `sensor.py` – 28 sensor entities (operational + diagnostic). Modify the `SENSORS` tuple, translations, and docs together when changing sensors.
-- `binary_sensor.py` – 4 machine-state binary sensors (printing, online, error, paused).
-- `switch.py` – LED switch with client capability check (capability check can be overridden via options).
-- `select.py` – Filtration mode select (Off / Internal / External, AD5X only) and the Local File Selection entity (`FlashForgeFileSelect`, options = the printer's file list, metadata in `extra_state_attributes`). Also registers the `flashforge.print_file` entity service.
+- `sensor.py` – 38 sensor entities (operational + diagnostic). `SENSORS` is composed of `_BASE_SENSORS + TOOLHEAD_SENSORS + CHAMBER_SENSORS` (per-toolhead and heated-chamber sensors are gated on the Creator 5 series). Modify the tuples, translations, and docs together when changing sensors.
+- `binary_sensor.py` – 5 machine-state binary sensors (printing, online, error, paused, door-open). `door_open` is availability-gated on `has_door_sensor` (Creator 5 Pro only).
+- `switch.py` – LED switch with client capability check (capability check can be overridden via options) and the camera switch. Descriptions carry both an `availability_fn` (greys the entity out; use when the printer may report the feature later) and a `supported_fn` (skips creating it entirely; use when the model's API cannot perform the action at all — the Creator 5 camera switch is inert, so it is never created there).
+- `select.py` – Filtration mode select (Off / Internal / External; availability gated on `is_pro OR is_creator5_pro`, i.e. Adventurer 5M Pro / Creator 5 Pro) and the Local File Selection entity (`FlashForgeFileSelect`, options = the printer's file list, per-file metadata in `extra_state_attributes` via `file_attributes()`). Also registers the `flashforge.print_file` entity service.
 - `button.py` – Pause / resume / cancel / clear-status commands plus `FlashForgePrintSelectedFileButton`; request a refresh after each action.
 - `print_job.py` – Per-model dispatch for starting a file already on the printer (`start_creator5_job` / AD5X single+multi color / `print_local_file`) and `build_material_mappings()`, which derives Material Station mappings from the file's tool data plus the printer's slot colors. Raises `ServiceValidationError` instead of guessing an incomplete mapping. **Per-file metadata is model-dependent**: the AD5X returns `gcodeListDetail` (print time, weight, per-tool material data), a Creator 5 Pro returns plain file names — verified on hardware with `scripts/file_print_probe.py`. Unknown values must stay unknown (`select.file_attributes()` omits them); treating them as `0`/`False` would make a multi-material file look single-material. A Creator 5 Pro was confirmed to accept and start a three-material file sent **without** `materialMappings` — the firmware falls back to the assignment stored in the 3MF, so no mapping input is needed on that model. The resulting color assignment itself is unverified (the test job was cancelled right after the start).
 - `services.yaml` – Service definition for `flashforge.print_file` (keep in sync with the `services` block in `strings.json`).
 - `camera.py` – MJPEG camera entity (`http://<ip>:8080/?action=stream` by default).
 - `image.py` – Hosts the active-print g-code thumbnail entity AND the 4 Material Station slot swatch entities (AD5X / Creator 5 series). Swatches are PNG-encoded by `render_swatch_bytes()` (Pillow) inside an executor; both entity types cache rendered bytes and only invalidate on input change.
 - `diagnostics.py` – HA diagnostics download payload, with `check_code`, `serial_number`, MAC/IP, and cloud registration codes redacted.
-- `util.py` – Shared helpers: `async_close_flashforge_client()` for HTTP session disposal, `build_device_info()` for the per-platform device-info dict, `has_material_station()` for Material Station capability detection (see the guard rails — the raw `has_matl_station` flag is unreliable).
+- `util.py` – Shared helpers: `async_close_flashforge_client()` for HTTP session disposal and `build_device_info()` for the per-platform device-info dict.
 - `strings.json` / `translations/en.json` – Keep UI copy synchronized between minimal strings and translation files. Every entity carries a `translation_key`; `name`s never set manually on entities.
 
 ## External Dependencies & Linked Projects
@@ -241,7 +241,7 @@ The local Home Assistant instance runs in **WSL2 only** with the following setup
 1. **Implementation**
    - Keep everything async; no blocking calls inside Home Assistant callbacks.
    - Use HTTP-facing client methods (`client.info`, `client.control`, `client.job_control`, etc.).
-   - Respect capability flags (`client.led_control`, `client.filtration_control`) before exposing features.
+   - Respect capability flags (`client.led_control` for the LED switch) before exposing features. Do NOT trust the `/product`-derived `client.filtration_control` — gate filtration/TVOC/chamber-fan on model identity (`is_pro OR is_creator5_pro`) instead.
 2. **Localization & Docs**
    - Update `strings.json` and `translations/en.json` whenever UI text changes.
    - Reflect behavior changes in `README.md`, `CHANGELOG.md`, `CLAUDE.md`, and `AGENTS.md` as appropriate.
@@ -286,7 +286,7 @@ pytest tests/unit/ --cov=custom_components.flashforge --cov-report=term-missing
 pytest tests/unit/test_sensor_value_functions.py -v
 ```
 
-**Current coverage (161 tests total):**
+**Current coverage (172 tests total):**
 - `tests/unit/test_discovery.py` – printer discovery protocol
 - `tests/unit/test_sensor_value_functions.py` – sensor value extraction
 - `tests/unit/test_binary_sensor_value_functions.py` – binary sensor logic
@@ -300,8 +300,9 @@ pytest tests/unit/test_sensor_value_functions.py -v
 - `tests/unit/test_switch_availability.py` – LED switch availability with override
 - `tests/unit/test_file_list_coordinator.py` – local file list fetch, filtering, and error paths
 - `tests/unit/test_print_job.py` – per-model print-start dispatch and Material Station mapping
-- `tests/unit/test_print_file_entities.py` – print file select + print button behavior
-- `tests/unit/test_material_station_gating.py` – Material Station capability detection (Creator 5 Pro reports no `hasMatlStation` flag) and deferred entity creation for image + sensor platforms
+- `tests/unit/test_print_file_entities.py` – Local File Selection select + print button behavior
+- `tests/unit/test_capability_gated_entities.py` – deferred entity creation when a capability reports in late (slot images + gated sensors)
+- `tests/unit/test_config_flow_error_reporting.py` – `cannot_connect` / `invalid_auth` / `invalid_response` mapping
 
 **Test dependencies** (`requirements-test.txt`):
 - Core: `pytest`, `pytest-asyncio`, `pytest-cov`
@@ -347,14 +348,14 @@ pytest tests/unit/test_sensor_value_functions.py -v
 3. Add the integration via UI; test both discovery and manual paths.
 4. Open the created device and verify entities:
    - Sensors: machine status, nozzle temps/targets, bed temps/targets, progress, file, current/total layers, elapsed/remaining time, filament length/weight, print speed, z offset, nozzle size, filament type, lifetime stats, plus diagnostic sensors (firmware version, free disk space, error code).
-   - Binary sensors: printing, online, error, paused.
+   - Binary sensors: printing, online, error, paused, door-open (Creator 5 Pro only).
    - Switch: LED (may show unavailable on unsupported models unless override is enabled).
-   - Select: filtration mode — Off / Internal / External (AD5X only); Local File Selection — lists the printer's files.
+   - Select: filtration mode — Off / Internal / External (Adventurer 5M Pro / Creator 5 Pro only); Local File Selection — lists the printer's files.
    - Buttons: pause, resume, cancel, clear status, print selected file (errors when pressed with nothing selected).
    - Service: `flashforge.print_file` on the Local File Selection entity, with and without `file_name` / `leveling_before_print`.
    - Camera: MJPEG feed reachable.
    - Image: g-code thumbnail of the active print.
-   - Image (AD5X only): four IFS slot swatches (`image.*_ifs_slot_1..4`) showing material color + label, "EMPTY" tile for unloaded slots.
+   - Image (AD5X / Creator 5 series): four Material Station slot swatches (`image.*_ifs_slot_1..4`) showing material color + label, "EMPTY" tile for unloaded slots.
 5. Trigger control actions (pause/resume/cancel, switches) and ensure states refresh.
 6. Observe coordinator error handling by temporarily disconnecting the printer and confirming entities surface availability correctly.
 
@@ -362,24 +363,27 @@ pytest tests/unit/test_sensor_value_functions.py -v
 
 - **Discovery diagnostics** – `scripts/test_discovery.py` and `scripts/discovery_probe.py` help debug LAN communication without HA.
 - **File list / print start** – `scripts/file_print_probe.py` runs the integration's own `print_job` code against a real printer without a HA runtime (it borrows `tests/ha_mocks.py`). Read-only by default; `--raw` dumps the untouched `/gcodeList` payload and how the library's pydantic models parse it; `--thumb <file>` checks the per-file preview; `--print <file> --yes` actually starts a print.
-- **Capability diagnosis** – `scripts/capability_probe.py` dumps the raw `/detail` and `/product` payloads next to the flags entities are gated on (`led_control`, `has_material_station()`, door/camera). Use it whenever an entity is unexpectedly greyed out, before assuming the printer lacks the feature. `--led on|off` sends `lightControl_cmd` with the capability guard forced open.
+- **Capability diagnosis** – `scripts/capability_probe.py` dumps the raw `/detail` and `/product` payloads next to the flags entities are gated on (`led_control`, `has_matl_station`, chamber/door/camera). Use it whenever an entity is unexpectedly greyed out or missing, before assuming the printer lacks the feature. `--led on|off` sends `lightControl_cmd` with the capability guard forced open.
 - **Hardware caveat** – Full verification requires a FlashForge printer with LAN mode enabled; simulated runs only confirm flow logic.
 
 ## Implementation Guard Rails
 - **HTTP-first policy** – Do not introduce direct TCP/G-code communication here. If unavoidable, extend the API library (`ff-5mp-api-py`) and consume it via HTTP-style helpers. This is why the file list uses `files.get_recent_file_list()` (HTTP `/gcodeList`, most recent files only) instead of `files.get_file_list()`, which falls back to a TCP/8899 directory listing on the 5M family. The `flashforge.print_file` service accepts a free-form `file_name` so files outside that list stay printable.
 - **Coordinator as source of truth** – Entities derive state from the coordinator’s latest `FFMachineInfo`. Avoid storing custom copies of printer state in entities.
-- **PID for model identity, never the printer name** – Modern HTTP printers report a stable firmware-set integer `pid` on `/detail` (35 = Adventurer 5M, 36 = 5M Pro, 38 = AD5X). The integration enforces this in TWO places that should both stay in sync:
-  - `config_flow.py` `_is_supported_detail()` reads the raw `/detail` payload during pairing and rejects PIDs not in `SUPPORTED_PIDS = {35, 36, 38}`. This is the early gate — runs before any `FFMachineInfo` parsing happens.
-  - The library (`flashforge-python-api>=1.2.3`) populates `FFMachineInfo.is_pro` / `is_ad5x` / `pid` from the same value. This is the runtime gate — used by `switch.py` for LED / filtration availability.
+- **PID for model identity, never the printer name** – Modern HTTP printers report a stable firmware-set integer `pid` on `/detail` (35 = Adventurer 5M, 36 = 5M Pro, 38 = AD5X, 40 = Creator 5, 41 = Creator 5 Pro). The integration enforces this in TWO places that should both stay in sync:
+  - `config_flow.py` `_is_supported_detail()` reads the raw `/detail` payload during pairing and rejects PIDs not in `SUPPORTED_PIDS = {35, 36, 38, 40, 41}`. This is the early gate, and "early" is load-bearing: it consumes `client.info.get_detail_raw()` (the undecoded JSON dict), so it runs before **any** validation, not just before `FFMachineInfo` parsing. Until v1.3.4 it read `pid` off a parsed `FFPrinterDetail`, which meant a supported Creator 5 could be turned away because an unrelated field (`chamberTemp: -108`) failed validation first — see issue #18. Never move this gate back onto a parsed model.
+  - The library (`flashforge-python-api>=1.3.4`) populates `FFMachineInfo.is_pro` / `is_ad5x` / `is_creator5` / `is_creator5_pro` / `pid` from the same value. This is the runtime gate — used by `switch.py` for LED availability and by `sensor.py` / `select.py` for model-identity capability gating.
   - Both gates are needed: the config-flow gate stops unsupported hardware from being added at all; the runtime gate keeps capability flags accurate after pairing. Do NOT substring-match `info.name` — it's user-mutable and broke detection in v1.1.8 (see issue #13 / v1.1.9 fix). When new modern PIDs ship, update `SUPPORTED_PIDS` here AND coordinate a library bump.
-- **Capability flags: never trust a raw `/detail` field on its own** – Several `FFMachineInfo` fields are straight copies of the printer's JSON and are simply absent on some models. `has_matl_station` is the known case: a Creator 5 Pro (pid 41) leaves `hasMatlStation` out of `/detail` entirely (it parses as `None`) while `matlStationInfo` reports four loaded slots, so gating on the flag hid the Material Station entities on exactly the models v1.3.0 added them for. Gate on `util.has_material_station()`, which also accepts populated slot data as proof. When adding a capability gate, derive it from the data the capability actually produces, and verify with `scripts/file_print_probe.py --raw` (dumps the untouched `/detail` and `/gcodeList` payloads) before trusting a single field.
+- **Capability flags: never gate on a raw `/detail` passthrough** – Firmware omits fields that don't apply to a model, so an absent value means "not reported", and a `None`-able flag invites a consumer to read it as "no". A Creator 5 Pro (pid 41) leaves `hasMatlStation` out of `/detail` entirely while `matlStationInfo` reports four loaded slots, which hid the Material Station entities on exactly the models v1.3.0 added them for. Gate on a derived, always-concrete capability — `FFMachineInfo.has_matl_station` (library ≥1.3.2 derives it from the slot data) — and verify with `scripts/capability_probe.py`, which dumps the untouched `/detail` and `/product` payloads next to the derived flags, before trusting a single field. See the fuller rules in `AGENTS.md`.
 - **Capability-gated entities must survive a late capability** – Platforms are only set up once, so deciding availability from `coordinator.data` at setup time permanently drops entities when the first refresh failed or the capability reported in late. `sensor.py` and `image.py` re-check on coordinator updates via `coordinator.async_add_listener` and add the entities when the gate first passes; follow that pattern for new conditional entities instead of filtering once in `async_setup_entry`.
 - **Error handling** – Wrap connection issues in `ConfigEntryNotReady`, `ConnectionError`, or `UpdateFailed` so Home Assistant retries gracefully.
+- **"Could not read the answer" is not "could not reach the printer"** – The library returns `None` when a request never got through and raises `FlashForgeResponseError` when the printer answered with a payload it could not parse. Keep the two apart all the way to the user: the config flow maps the exception to `invalid_response` (never `cannot_connect`), and `__init__.py` / `coordinator.py` log it with wording that sends the user to the issue tracker rather than to their router. Collapsing them is what made issue #18 take three releases — the printer was reachable and the credentials were correct the entire time, but every message on offer said otherwise.
+- **Never constrain the *range* of data received from the printer** – This applies to the API library, but the integration is what breaks when it is violated. Pydantic validates a model all-or-nothing, so a `ge=`/`le=` on any one of ~50 `/detail` fields can fail the whole response and take every entity offline. Firmware also signals absent hardware with out-of-band sentinels (`chamberTemp: -108`) rather than by omitting the field, so "impossible" values are normal. Inbound models validate types only; range constraints belong on outbound command models, where a bad value is our own bug. If a new field needs bounds, normalize it in the parser, don't reject it.
+- **Gate capabilities on what the printer reported, not on its model family** – Options exist within a family: the heated chamber is a Creator 5 extra, so chamber entities gate on `has_chamber_sensor`, not `is_creator5`. Model identity is the right signal only for things the model genuinely cannot do at all (filtration, the Creator 5 camera switch).
 - **Entity additions**
   - Add to the appropriate entity tuple.
   - Provide unique `key`, icon, units, and defensive `value_fn`.
   - Update documentation (README, CHANGELOG, CLAUDE/AGENTS) and translations.
-- **Options flow** – Currently only the scan interval. Extend cautiously to avoid breaking existing entries.
+- **Options flow** – Currently exposes the scan interval and the LED-availability override. Extend cautiously to avoid breaking existing entries.
 
 ## Release & Publishing Checklist
 1. Implement and document changes.

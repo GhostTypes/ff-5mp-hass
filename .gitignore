@@ -30,3 +30,6 @@ Thumbs.db
 *.log
 homeassistant/*
 /homeassistant-prod
+
+# Local codegraph index (tooling artifact)
+.codegraph/

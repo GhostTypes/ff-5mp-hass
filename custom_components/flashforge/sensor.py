@@ -34,7 +34,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import FlashForgeDataUpdateCoordinator
-from .util import build_device_info, has_material_station
+from .util import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def _completion_time(data: FFMachineInfo) -> datetime | None:
 
 def _active_ifs_slot(data: FFMachineInfo) -> int | None:
     """Return the active Material Station slot (1-4), 0 when idle, None when absent."""
-    if not has_material_station(data):
+    if not data.has_matl_station:
         return None
     station = getattr(data, "matl_station_info", None)
     if station is None:
@@ -89,8 +89,20 @@ def _active_ifs_slot(data: FFMachineInfo) -> int | None:
 
 
 def _is_creator5_series(data: FFMachineInfo) -> bool:
-    """Creator 5 / Creator 5 Pro (4-tool tool-changer with a heated chamber)."""
+    """Creator 5 / Creator 5 Pro (4-tool tool-changer)."""
     return bool(getattr(data, "is_creator5", False) or getattr(data, "is_creator5_pro", False))
+
+
+def _has_chamber(data: FFMachineInfo) -> bool:
+    """True only when the printer actually reported a chamber temperature.
+
+    The heated chamber is a Creator 5 series *option*, not a family trait.
+    Gating on the model alone gave chamber-less units two entities pinned at
+    0 C, because firmware reports the absent sensor as -108 rather than by
+    omitting the field (issue #18). The library normalizes that sentinel away
+    and sets `has_chamber_sensor` from what was actually reported.
+    """
+    return bool(getattr(data, "has_chamber_sensor", False))
 
 
 def _has_air_quality(data: FFMachineInfo) -> bool:
@@ -298,7 +310,7 @@ _BASE_SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = (
         icon="mdi:tray-full",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=_active_ifs_slot,
-        availability_fn=has_material_station,
+        availability_fn=lambda data: data.has_matl_station,
     ),
     FlashForgeSensorEntityDescription(
         key="lifetime_filament",
@@ -378,7 +390,9 @@ TOOLHEAD_SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = tuple(
     for i in range(1, 5)
 )
 
-# Creator 5 series: heated chamber (current + target).
+# Heated chamber (current + target). Gated on the sensor actually reporting,
+# NOT on the Creator 5 model family - the chamber is an option within that
+# family, and units without it used to show two entities stuck at 0 C.
 CHAMBER_SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = (
     FlashForgeSensorEntityDescription(
         key="chamber_temperature",
@@ -388,7 +402,7 @@ CHAMBER_SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
         value_fn=lambda data: round(data.chamber.current, 2) if data.chamber else 0,
-        availability_fn=_is_creator5_series,
+        availability_fn=_has_chamber,
     ),
     FlashForgeSensorEntityDescription(
         key="chamber_target_temperature",
@@ -398,7 +412,7 @@ CHAMBER_SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
         value_fn=lambda data: round(data.chamber.set, 2) if data.chamber else 0,
-        availability_fn=_is_creator5_series,
+        availability_fn=_has_chamber,
     ),
 )
 
@@ -429,18 +443,21 @@ async def async_setup_entry(
     ]
 
     @callback
-    def _async_add_gated_sensors() -> None:
-        """Add capability-gated sensors as soon as the printer reports them.
+    def _async_add_available_sensors() -> None:
+        """Add capability-gated sensors as their capability first shows up.
 
-        Model-identity gates settle on the first refresh, but the Material
-        Station gate does not: a poll can land before the station reports in,
-        and the first refresh may have failed outright. Re-check on every update
-        so a late-reporting capability still gets its entity.
+        Deciding this once at setup strands them permanently: platform setup can
+        run before the printer has reported the capability, and the first refresh
+        may have failed outright. Keep watching instead.
         """
         data = coordinator.data
         if data is None:
             return
-        ready = [d for d in pending if d.availability_fn(data)]
+        ready = [
+            description
+            for description in pending
+            if description.availability_fn is not None and description.availability_fn(data)
+        ]
         if not ready:
             return
         for description in ready:
@@ -450,9 +467,9 @@ async def async_setup_entry(
             for description in ready
         )
 
-    _async_add_gated_sensors()
+    _async_add_available_sensors()
     if pending:
-        entry.async_on_unload(coordinator.async_add_listener(_async_add_gated_sensors))
+        entry.async_on_unload(coordinator.async_add_listener(_async_add_available_sensors))
 
 
 class FlashForgeSensor(CoordinatorEntity[FlashForgeDataUpdateCoordinator], SensorEntity):

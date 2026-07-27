@@ -122,8 +122,9 @@ class ImageEntity(Entity):
 
     _attr_image_last_updated = None
 
-    def __init__(self, hass=None) -> None:
-        """Initialize the image entity."""
+    def __init__(self, hass=None, *args, **kwargs):
+        # The real ImageEntity takes `hass` positionally and sets up verify_ssl
+        # / access-token plumbing the tests do not exercise.
         self.hass = hass
 
 

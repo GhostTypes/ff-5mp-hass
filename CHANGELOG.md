@@ -5,7 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.4] - 2026-07-26
+
+### Fixed
+
+- **A Creator 5 without a heated chamber can now be set up at all.** This is the actual cause of [#18](https://github.com/GhostTypes/ff-5mp-hass/issues/18), which v1.3.2 and v1.3.3 improved the *reporting* of without fixing. Firmware on a Creator 5 with no chamber heater reports `chamberTemp: -108` — a sentinel meaning "this sensor does not exist" — and the API library's model rejected any chamber temperature below `-50 °C`. That one field failed validation for the entire `/detail` response, the library returned "no data", and the config flow reported `cannot_connect`. The printer was reachable and the check code was correct the whole time. Fixed in `flashforge-python-api` 1.3.4, which maps the sentinel to "not reported"; the minimum requirement is raised accordingly. Diagnosed from the reporter's debug log — thank you.
+
+- **Chamber temperature entities are no longer created for printers without a chamber.** They were gated on the Creator 5 model family, but the heated chamber is an *option* within that family, so chamber-less units got two entities permanently reading 0 °C. They now follow the library's new `has_chamber_sensor` flag, which reflects what the printer actually reported.
+
+- **The supported-printer check no longer depends on the rest of the payload being readable.** `_is_supported_detail()` read `pid` off a fully parsed `/detail`, so it could only run once all ~50 fields had validated — meaning a supported Creator 5 (pid 40) was turned away over a chamber reading that has no bearing on whether it is supported. Identity is now read from the raw JSON response before any validation, which is what the "early gate" was always documented to be.
+
+### Added
+
+- **A distinct `invalid_response` error for payloads the integration cannot read.** Previously these arrived as `cannot_connect`, which is why #18's reporter spent three releases checking their network and their check code for what was a schema bug. The new message states plainly that this is not a network or credential problem and links the issue tracker. The setup path and the update coordinator log it with matching wording, so the Home Assistant log no longer describes a responsive printer as a communication failure. With this case routed to its own error, `cannot_connect` and `invalid_auth` no longer have to hedge — each now describes only its own cause.
+
+### Changed
+
+- **Requires `flashforge-python-api>=1.3.4`**, which stops validating value *ranges* on data received from the printer. Range constraints sat on roughly 30 `/detail` fields, and because Pydantic validates a model all-or-nothing, any one of them could take the whole integration offline the way `chamberTemp` did — on `tvoc`, `printSpeedAdjust`, `fillAmount`, or any other field, on any firmware revision. Inbound data is now taken as it comes; the library still errors when something genuinely required is missing.
+
+## [1.3.3] - 2026-07-26
+
+### Fixed
+
+- **Setup failures no longer blame the check code for everything.** Every failure in the config flow raised a bare `ConnectionError` and surfaced as *"Failed to connect to the printer. Please check the IP address and credentials."* — the only error message the flow had. A `/detail` response the library could not parse, an unreachable printer, and a genuinely rejected check code were indistinguishable, and all three pointed the user at their credentials. That is why [#18](https://github.com/GhostTypes/ff-5mp-hass/issues/18) collected two contradictory diagnoses of the same symptom: one reporter concluded the check code was wrong, another concluded the integration required TCP port 8899 (it does not — this integration is HTTP-only and never opens 8899). A new `InvalidAuthError` is now raised only when the printer itself answers and refuses, mapping to a distinct `invalid_auth` message; everything else stays `cannot_connect`, whose wording no longer asserts the credentials are at fault and points at the Home Assistant log instead. The setup path's `ConfigEntryNotReady` message was reworded the same way.
+
+### Changed
+
+- **Requires `flashforge-python-api>=1.3.3`**, which routes its diagnostics through `logging` rather than `print()`. Under Home Assistant the library's explanation of *why* a request failed previously went to stdout, where no user could reach it — which is what made #18 unresolvable from the reports alone. The real cause now appears in the Home Assistant log, with credentials, MAC, IP, and cloud registration codes redacted.
+
+## [1.3.2] - 2026-07-26
+
+### Changed
+
+- **The camera switch is no longer created on the Creator 5 series.** v1.3.1 made `switch.<printer>_camera` *available* on those models, but hardware testing on a Creator 5 Pro (firmware 1.9.4) confirmed the API can no longer act on it: `streamCtrl_cmd` with `action: close` answers `{"code": 0, "Success"}` while port 8080 keeps serving live MJPEG frames 22 seconds later, and `cameraStreamUrl` never changes. The switch could not reflect an off state either — `is_on` reads that same always-present URL, so the next poll flipped it straight back to `on`. Rather than ship a control that silently does nothing, the switch is now omitted entirely on the Creator 5 / Creator 5 Pro; the `camera` entity itself is unaffected and continues to stream. Refs [#17](https://github.com/GhostTypes/ff-5mp-hass/issues/17).
+
+### Fixed
+
+- **Material Station entities now appear on the Creator 5 series.** The four slot swatches (`image.<printer>_ifs_slot_1..4`) and the Active Material Station Slot sensor were gated on `FFMachineInfo.has_matl_station`, which was a straight copy of the raw `hasMatlStation` field from `/detail`. A Creator 5 Pro does not report that field at all — verified on real hardware (pid 41, firmware 1.9.4), where it is absent from `/detail` entirely while `matlStationInfo` reports `slotCnt: 4` and four loaded slots. The flag parsed as `None`, the entities were never created, and the v1.3.0 change that moved the gate off `is_ad5x` had no effect on this model. Fixed in the library (`flashforge-python-api` 1.3.2), which now derives the capability from the slot data; the minimum requirement is raised accordingly.
+- **Capability-gated entities are no longer decided once at setup.** The Material Station slot images and every `availability_fn`-gated sensor are now also added when their capability first shows up on a later refresh. Platform setup can run before the printer has reported a capability, and the first refresh may fail outright — either case previously left the printer permanently without those entities.
+
+- **The LED switch is no longer greyed out on every printer.** The "Always show LED switch" option was passed to the library as `led_control_override` using its unset value `False`. That parameter is tri-state — `None` means "no override", `True` forces the capability on, and `False` forces it **off** — so with the option switched off, which is the default, the integration overrode the printer's own correct capability report and pinned `client.led_control` to `False` on every model. The switch stayed unavailable, and the library additionally refused `set_led_on()` / `set_led_off()` internally, which made enabling the override look like the only way to get a working switch: `True` was the only value that got past the veto. The option now sends `None` when off and `True` only when the user asks for it, which is what it was always meant to do. Reported and diagnosed on a Creator 5 Pro, where `/product` correctly reports `lightCtrlState: 1` all along. Refs [#17](https://github.com/GhostTypes/ff-5mp-hass/issues/17).
 
 ### Added
 - **Local file list and print start.** The files stored on the printer are now visible in Home Assistant and a print can be started from them:
@@ -231,7 +270,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FlashForge Adventurer 5M Series
 - FlashForge Adventurer 4
 
-[Unreleased]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.3...HEAD
+[1.3.3]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.2...v1.3.3
+[1.3.2]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.1.9...v1.2.0

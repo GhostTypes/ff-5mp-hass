@@ -39,7 +39,6 @@ from flashforge import FiveMClientConnectionOptions, FlashForgeClient  # noqa: E
 from flashforge.api.constants.endpoints import Endpoints  # noqa: E402
 from flashforge.models.responses import FFPrinterDetail  # noqa: E402
 
-from custom_components.flashforge.util import has_material_station  # noqa: E402
 
 
 async def connect(ip: str, serial: str, check_code: str) -> FlashForgeClient:
@@ -81,8 +80,7 @@ def report_flags(client: FlashForgeClient, info) -> None:
     print("\nCapability flags")
     print(f"  client.led_control        {client.led_control}   (LED switch)")
     print(f"  client.filtration_control {client.filtration_control}   (unused: the select gates on model identity)")
-    print(f"  has_matl_station (raw)    {getattr(info, 'has_matl_station', None)}")
-    print(f"  has_material_station()    {has_material_station(info)}   (Material Station entities)")
+    print(f"  has_matl_station          {getattr(info, 'has_matl_station', None)}   (Material Station entities; derived by the library, not a raw /detail field)")
     print(f"  has_door_sensor           {getattr(info, 'has_door_sensor', None)}")
     print(f"  has_camera                {getattr(info, 'has_camera', None)}")
 

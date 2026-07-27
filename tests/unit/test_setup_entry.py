@@ -25,10 +25,8 @@ from custom_components.flashforge.const import (
 from homeassistant.const import CONF_IP_ADDRESS, CONF_NAME
 
 
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_async_setup_entry_uses_library_led_override_option():
-    """The integration should pass LED override configuration into the API client options."""
+async def _run_setup(entry_options: dict):
+    """Run async_setup_entry with mocked collaborators; return (result, mocks)."""
     hass = Mock()
     hass.data = {}
     hass.config_entries = Mock()
@@ -42,10 +40,7 @@ async def test_async_setup_entry_uses_library_led_override_option():
         CONF_CHECK_CODE: "CHECK123",
         CONF_NAME: "Workshop Printer",
     }
-    entry.options = {
-        CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
-        CONF_OVERRIDE_LED_AVAILABILITY: True,
-    }
+    entry.options = entry_options
     entry.add_update_listener = Mock(return_value=Mock())
     entry.async_on_unload = Mock()
 
@@ -74,72 +69,84 @@ async def test_async_setup_entry_uses_library_led_override_option():
     ):
         result = await async_setup_entry(hass, entry)
 
+    return result, {
+        "hass": hass,
+        "entry": entry,
+        "client": client,
+        "client_cls": client_cls,
+        "options_cls": options_cls,
+        "options_sentinel": options_sentinel,
+        "machine_info": machine_info,
+        "coordinator": coordinator,
+        "file_coordinator": file_coordinator,
+    }
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_setup_entry_forces_led_capability_when_the_user_asks():
+    """With the override enabled, the capability is forced on regardless of /product.
+
+    This is the option's whole purpose: printers that report no LED but have one,
+    and users who fit an aftermarket light.
+    """
+    result, mocks = await _run_setup(
+        {
+            CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+            CONF_OVERRIDE_LED_AVAILABILITY: True,
+        }
+    )
+
     assert result is True
-    options_cls.assert_called_once_with(led_control_override=True)
-    client_cls.assert_called_once_with(
+    mocks["options_cls"].assert_called_once_with(led_control_override=True)
+    mocks["client_cls"].assert_called_once_with(
         ip_address="192.168.1.100",
         serial_number="SN123456",
         check_code="CHECK123",
-        options=options_sentinel,
+        options=mocks["options_sentinel"],
     )
-    client.cache_details.assert_called_once_with(machine_info)
-    client.send_product_command.assert_awaited_once()
-    coordinator.async_config_entry_first_refresh.assert_awaited_once()
-    hass.config_entries.async_forward_entry_setups.assert_awaited_once()
-    entry.async_on_unload.assert_called_once()
-    assert hass.data[DOMAIN][entry.entry_id]["client"] is client
-    # The file list is fetched with the non-raising refresh so a file list
+    mocks["client"].cache_details.assert_called_once_with(mocks["machine_info"])
+    mocks["client"].send_product_command.assert_awaited_once()
+    mocks["coordinator"].async_config_entry_first_refresh.assert_awaited_once()
+    mocks["hass"].config_entries.async_forward_entry_setups.assert_awaited_once()
+    mocks["entry"].async_on_unload.assert_called_once()
+    assert mocks["hass"].data[DOMAIN][mocks["entry"].entry_id]["client"] is mocks["client"]
+    # The file list is fetched with the non-raising refresh, so a file list
     # hiccup cannot block setup.
-    file_coordinator.async_refresh.assert_awaited_once()
+    mocks["file_coordinator"].async_refresh.assert_awaited_once()
     assert (
-        hass.data[DOMAIN][entry.entry_id]["file_coordinator"] is file_coordinator
+        mocks["hass"].data[DOMAIN][mocks["entry"].entry_id]["file_coordinator"]
+        is mocks["file_coordinator"]
     )
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_led_override_off_leaves_detection_to_the_printer():
-    """An unset LED option must not pin the capability to False.
-
-    The library reads led_control_override=False as "force the LED off", which
-    hides the switch on every printer regardless of what /product reported.
-    """
-    hass = Mock()
-    hass.data = {}
-    hass.config_entries = Mock()
-    hass.config_entries.async_forward_entry_setups = AsyncMock()
-
-    entry = Mock()
-    entry.entry_id = "entry-2"
-    entry.data = {
-        CONF_IP_ADDRESS: "192.168.1.100",
-        CONF_SERIAL_NUMBER: "SN123456",
-        CONF_CHECK_CODE: "CHECK123",
-        CONF_NAME: "Workshop Printer",
-    }
-    entry.options = {CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL}
-    entry.add_update_listener = Mock(return_value=Mock())
-    entry.async_on_unload = Mock()
-
-    client = Mock()
-    client.info.get = AsyncMock(return_value=Mock())
-    client.cache_details = Mock(return_value=True)
-    client.send_product_command = AsyncMock(return_value=True)
-
-    coordinator = Mock()
-    coordinator.async_config_entry_first_refresh = AsyncMock()
-    file_coordinator = Mock()
-    file_coordinator.async_refresh = AsyncMock()
-
-    with (
-        patch("custom_components.flashforge.FiveMClientConnectionOptions") as options_cls,
-        patch("custom_components.flashforge.FlashForgeClient", return_value=client),
-        patch("custom_components.flashforge.FlashForgeDataUpdateCoordinator", return_value=coordinator),
-        patch(
-            "custom_components.flashforge.FlashForgeFileListCoordinator",
-            return_value=file_coordinator,
+@pytest.mark.parametrize(
+    ("options", "case"),
+    [
+        ({CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL}, "option never set"),
+        (
+            {
+                CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+                CONF_OVERRIDE_LED_AVAILABILITY: False,
+            },
+            "option explicitly off",
         ),
-    ):
-        assert await async_setup_entry(hass, entry) is True
+    ],
+)
+async def test_async_setup_entry_does_not_override_led_capability_when_off(options, case):
+    """With the override off, send None - never False.
 
-    options_cls.assert_called_once_with(led_control_override=None)
+    Regression test. `led_control_override` is tri-state: None means "no
+    override", but False means "force the capability OFF". The option was passed
+    straight through, so every user who never touched it - the default - sent
+    False and vetoed the printer's own correct capability report. The LED switch
+    was greyed out on every model, and the library refused set_led_on/off
+    internally, which made enabling the override look like the only way to get a
+    working switch. It was: True was the only value that got past the veto.
+    """
+    result, mocks = await _run_setup(options)
+
+    assert result is True, case
+    mocks["options_cls"].assert_called_once_with(led_control_override=None)

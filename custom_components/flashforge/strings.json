@@ -53,7 +53,9 @@
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the printer. Please check the IP address and credentials.",
+      "cannot_connect": "Could not reach the printer. Check that the IP address is correct, the printer is powered on, and LAN mode is enabled.",
+      "invalid_response": "The printer answered, but this integration could not read its response. This is not a network or credential problem — it is a bug. Please report it at https://github.com/GhostTypes/ff-5mp-hass/issues and include the Home Assistant log with debug logging enabled for custom_components.flashforge.",
+      "invalid_auth": "The printer rejected the serial number or check code. Verify both on the printer's screen (the serial number includes the SN prefix).",
       "no_printers_found": "No FlashForge printers found on the network. Please use manual configuration.",
       "unsupported_printers_found": "Only AD5X, Adventurer 5M, Adventurer 5M Pro, Creator 5, and Creator 5 Pro printers are supported by this integration.",
       "discovery_failed": "Failed to discover printers. Please use manual configuration.",

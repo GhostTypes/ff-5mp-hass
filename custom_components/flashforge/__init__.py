@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import logging
 
-from flashforge import FlashForgeClient, FiveMClientConnectionOptions
+from flashforge import (
+    FiveMClientConnectionOptions,
+    FlashForgeClient,
+    FlashForgeResponseError,
+)
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_IP_ADDRESS, CONF_NAME, Platform
@@ -46,10 +50,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     override_led_availability = entry.options.get(CONF_OVERRIDE_LED_AVAILABILITY, False)
 
-    # Create FlashForge client. The library distinguishes "no override" (None)
-    # from "override to off" (False): passing the unset option through as False
-    # would pin led_control to False and hide the LED switch on every printer,
-    # whatever /product reported. Only force the capability when asked to.
+    # Create FlashForge client.
+    #
+    # `led_control_override` is tri-state, not a boolean: None means "no
+    # override, trust /product", True forces the capability on, and False forces
+    # it OFF. Passing the option straight through sent False whenever the user
+    # had not enabled it - the default - which vetoed the printer's own correct
+    # capability report and greyed out the LED switch on every model. Only ever
+    # force the capability when the user actually asked for it.
     client = FlashForgeClient(
         ip_address=ip_address,
         serial_number=serial_number,
@@ -62,6 +70,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Initialize the client via HTTP only
     try:
         machine_info = await client.info.get()
+    except FlashForgeResponseError as err:
+        # Still ConfigEntryNotReady - a firmware payload we cannot read may well
+        # become readable after an integration update, so HA should keep
+        # retrying. The distinction is in the message, which has to send the
+        # user to the issue tracker rather than to their router (issue #18).
+        _LOGGER.error(
+            "The printer answered, but its response could not be read. This is an "
+            "integration bug, not a connection problem - please report it at "
+            "https://github.com/GhostTypes/ff-5mp-hass/issues with debug logs enabled. %s",
+            err,
+        )
+        await async_close_flashforge_client(client)
+        raise ConfigEntryNotReady(
+            f"The printer's response could not be read (this is not a connectivity "
+            f"problem; please report it): {err}"
+        ) from err
     except Exception as err:  # noqa: BLE001 - upstream may raise broad exceptions
         _LOGGER.error("Error retrieving printer status: %s", err)
         await async_close_flashforge_client(client)
@@ -76,7 +100,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         if not await client.send_product_command():
             await async_close_flashforge_client(client)
-            raise ConfigEntryNotReady("Printer rejected credentials; check code may be invalid")
+            # Not necessarily a credential problem: the library returns False
+            # both when the printer refuses and when the response could not be
+            # parsed. It logs the two distinctly (flashforge-python-api >=
+            # 1.3.3), so point there rather than asserting the check code is
+            # wrong - that assertion is what made issue #18 unreadable.
+            raise ConfigEntryNotReady(
+                "The printer did not accept the /product request. This usually means the "
+                "serial number or check code is wrong, but an unreadable response looks "
+                "the same from here - check the log for the specific cause."
+            )
     except Exception as err:  # noqa: BLE001
         _LOGGER.error("Error validating printer credentials: %s", err)
         await async_close_flashforge_client(client)
