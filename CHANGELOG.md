@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-07-31
+
+### Added
+
+- **Start prints from Home Assistant, with material matching.** A new dashboard card — **FlashForge Print Job** — lists the files on the printer and starts them, including the tool-to-slot matching that multi-material files need on the AD5X and Creator 5 series. The card is installed and registered by the integration itself: no separate HACS entry, no Lovelace resource to add. Add it from the card picker and choose your printer.
+
+  The matching dialog is a port of the FlashForge desktop app's, down to its rules: a material mismatch blocks the print, a *color* mismatch only warns (it prints fine, in the wrong color), empty and already-assigned slots cannot be picked, and every tool in the file must be mapped before the job can start. A mapping is pre-filled from the file's own slicer assignment and the filament actually loaded, so the usual case is one confirmation — but nothing starts on a mapping the user has not seen. Groundwork, testing, and the original implementation by [@RedAces](https://github.com/RedAces) in [#19](https://github.com/GhostTypes/ff-5mp-hass/pull/19).
+
+- **German translation**, contributed by [@RedAces](https://github.com/RedAces) in [#19](https://github.com/GhostTypes/ff-5mp-hass/pull/19) — every entity name, config-flow step, and error message the integration can show. Home Assistant picks it up from the user's profile language with no configuration.
+
+- **The job card is translatable too, and German ships with it.** The card's own copy could not live in `strings.json` — Home Assistant never hands that file to a custom card — so it sits in `custom_components/flashforge/frontend/translations/<language>.json`, served alongside the card and fetched at runtime from the user's language. Adding a language is one file: copy `en.json`, translate the values, name it after the language code. No JavaScript to edit, no Python to touch, no build step. English is the per-key fallback, so a translation that lags a release degrades one string at a time instead of blanking the card, and unit tests hold every language file to English's key set, placeholders, and plural forms.
+
+- **A one-time "reload this page" notification, so the card is never silently missing.** Home Assistant hands a browser its list of frontend modules when the page loads and has no way to add one afterwards — so the tab you already had open when you installed this does not know the card exists, and the card picker will not offer it. That reads as a broken integration when it is a stale tab. The integration now raises a notification in the sidebar, which *does* reach that tab over its existing websocket connection, telling you to reload. It is keyed on the card version: you get it on install and on each update, exactly when a reload is actually required, and never on an ordinary restart.
+
+- **Four websocket commands backing the card** (`flashforge/files/list`, `flashforge/file/thumbnail`, `flashforge/job/prepare`, `flashforge/job/start`). The card is untrusted: `job/start` re-reads the file list and the live Material Station report and re-derives every material name and color itself, so a stale dashboard cannot tell the printer that an empty slot holds PLA, and a client that skips the dialog cannot start a material-station print without mappings at all.
+
+### Known limitations
+
+- **Only the printer's ten most recent files are listed, on every model.** That is the whole of what `/gcodeList` returns; the full local file listing exists only over the legacy TCP channel this integration deliberately does not speak. The 5M / 5M Pro additionally report file names only — no print time, filament weight, or per-tool materials — so their rows are bare and start without a matching step.
+
 ## [1.3.4] - 2026-07-26
 
 ### Fixed
@@ -251,7 +271,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FlashForge Adventurer 5M Series
 - FlashForge Adventurer 4
 
-[Unreleased]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.3...HEAD
+[Unreleased]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.4...v1.4.0
+[1.3.4]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.0...v1.3.1

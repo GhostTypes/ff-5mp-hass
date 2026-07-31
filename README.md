@@ -65,6 +65,10 @@
     <td>Pause, resume, cancel print jobs, and clear printer status directly from Home Assistant</td>
   </tr>
   <tr>
+    <td>Print Job Card</td>
+    <td>Browse the files on the printer, match each tool to a Material Station slot (AD5X / Creator 5 series), and start the print — a dashboard card installed with the integration</td>
+  </tr>
+  <tr>
     <td rowspan="4"><b>Architecture</b></td>
     <td>HTTP-First Design</td>
     <td>Superior reliability compared to TCP-only implementations</td>
@@ -297,6 +301,66 @@
 </div>
 
 
+
+<div align="center">
+  <h2>Starting Prints — the Job Card</h2>
+</div>
+
+The integration ships a dashboard card for starting prints of files already on the printer, including the **material matching** step the AD5X and Creator 5 series need for multi-material files.
+
+**Adding it:** the card is installed and registered with the integration — there is no separate HACS entry and no Lovelace resource to add. Edit a dashboard → **Add card** → search for **FlashForge Print Job** → pick your printer.
+
+> [!NOTE]
+> **After installing or updating, reload the page once.** A browser tab loads the list of frontend modules when the page opens, so a tab that was already open before the install does not know the card exists yet — the picker will not offer it. The integration tells you when this applies: you will get a **notification in the sidebar** saying the card is ready. Press <kbd>Ctrl</kbd>+<kbd>R</kbd> (<kbd>Cmd</kbd>+<kbd>R</kbd> on a Mac) and it will be there. You will not be asked again until the next update.
+
+**Using it:**
+
+1. Pick a file. Each row shows its thumbnail, print time, filament weight and per-tool material swatches, where the printer reports them.
+2. Optionally tick **Level the bed before printing**.
+3. Press **Start print**.
+   - **Single-material file, or a printer with no Material Station** — a confirmation dialog, then the print starts.
+   - **Material Station file (AD5X / Creator 5 series)** — the matching dialog opens. Every tool in the file must be mapped to a loaded slot before the print can start. A sensible mapping is pre-filled for you; review it and press **Start print**, or click a tool and then the slot you want it to come from to change it.
+
+**The matching rules**, identical to the FlashForge desktop app:
+
+| Situation | Result |
+|-----------|--------|
+| Slot material differs from the tool's material | **Blocked** — PLA cannot be printed from a PETG slot |
+| Slot color differs from the tool's color | **Allowed**, with a warning — the print will come out a different color |
+| Slot is empty, or already assigned to another tool | Cannot be selected |
+| A tool is left unmapped | **Start print** stays disabled |
+
+> [!NOTE]
+> **Only the ten most recent files are listed, on every model.** That is what the printer's HTTP API offers; the full local file listing exists only over the legacy TCP channel this integration deliberately does not speak. Send a file from your slicer and it will appear at the top of the list.
+
+> [!NOTE]
+> Per-file metadata (print time, filament weight, per-tool materials) is reported by the AD5X and Creator 5 series. The 5M / 5M Pro report file names only, so those rows show a name and start without a matching step.
+
+<div align="center">
+  <h2>Languages</h2>
+</div>
+
+The integration and the job card both follow the language set in your Home Assistant profile — there is nothing to configure.
+
+| Language | Integration | Job card |
+|----------|-------------|----------|
+| English | ✅ | ✅ |
+| German (Deutsch) | ✅ | ✅ |
+
+German was contributed by [@RedAces](https://github.com/RedAces). Anything not yet translated falls back to English rather than showing a blank.
+
+<details>
+<summary><b>Adding a language</b></summary>
+
+Two files, both plain JSON, both copied from the English version beside them:
+
+1. **The integration** — copy `custom_components/flashforge/translations/en.json` to `<code>.json` (e.g. `fr.json`) and translate the values. Keys must match English exactly; Home Assistant has no per-key fallback here.
+2. **The job card** — copy `custom_components/flashforge/frontend/translations/en.json` the same way. Leave `{placeholders}` such as `{slot}` and `{tool}` intact and in a natural position for your language. Keys you omit fall back to English, so a partial translation is fine.
+
+Keep `_one` / `_other` pairs together (`tools_one`, `tools_other`) — they are chosen by count, and a missing half renders empty.
+
+Then run `pytest tests/unit/test_translations.py`, which checks both files against English for missing or unknown keys, mismatched placeholders, and incomplete plurals. No build step and no JavaScript changes are involved. PRs welcome.
+</details>
 
 <div align="center">
   <h2>Usage Examples</h2>

@@ -174,5 +174,11 @@
       "ifs_slot_3": { "name": "Material Station Slot 3" },
       "ifs_slot_4": { "name": "Material Station Slot 4" }
     }
+  },
+  "notifications": {
+    "card_reload": {
+      "title": "FlashForge job card is ready",
+      "message": "The FlashForge Print Job card was just installed or updated. Reload this page (Ctrl+R, or Cmd+R on a Mac) to pick it up - until you do, the card will not appear in the card picker and dashboards already using it will show an error. This is only needed once per update."
+    }
   }
 }

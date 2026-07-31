@@ -67,6 +67,32 @@ class DataUpdateCoordinator:
         return cls
 
 
+class Store:
+    """Stub for homeassistant.helpers.storage.Store, backed by a dict.
+
+    Persists across instances the way the real one persists across runs, keyed
+    by store key. Tests that care about "has this already happened once" must
+    call `Store.reset()` first, since state deliberately outlives an instance.
+    """
+
+    _data: dict[str, Any] = {}
+
+    def __init__(self, hass: Any, version: int, key: str, **kwargs: Any) -> None:
+        self.hass = hass
+        self.version = version
+        self.key = key
+
+    async def async_load(self) -> Any:
+        return Store._data.get(self.key)
+
+    async def async_save(self, data: Any) -> None:
+        Store._data[self.key] = data
+
+    @classmethod
+    def reset(cls) -> None:
+        cls._data = {}
+
+
 class UpdateFailed(Exception):
     """Stub for homeassistant.helpers.update_coordinator.UpdateFailed."""
 
@@ -77,6 +103,18 @@ class ConfigEntryNotReady(Exception):
 
 class ConfigEntryAuthFailed(Exception):
     """Stub for homeassistant.exceptions.ConfigEntryAuthFailed."""
+
+
+class HomeAssistantError(Exception):
+    """Stub for homeassistant.exceptions.HomeAssistantError.
+
+    A real class, not a MagicMock attribute: job.py subclasses it, and you
+    cannot subclass a MagicMock.
+    """
+
+
+class ServiceValidationError(HomeAssistantError):
+    """Stub for homeassistant.exceptions.ServiceValidationError."""
 
 
 class SensorEntity(Entity):
@@ -336,7 +374,13 @@ def mock_homeassistant():
     config_entries_module.ConfigEntry = object
     sys.modules["homeassistant.config_entries"] = config_entries_module
     sys.modules["homeassistant.setup"] = MagicMock()
-    sys.modules["homeassistant.loader"] = MagicMock()
+    # `async_get_integration` is awaited during setup for the manifest version
+    # that cache-busts the job card's URL.
+    loader_module = MagicMock()
+    loader_module.async_get_integration = AsyncMock(
+        return_value=MagicMock(version="0.0.0-test")
+    )
+    sys.modules["homeassistant.loader"] = loader_module
 
     # Helpers
     sys.modules["homeassistant.helpers"] = MagicMock()
@@ -353,12 +397,23 @@ def mock_homeassistant():
     sys.modules["homeassistant.helpers.device_registry"] = MagicMock()
     sys.modules["homeassistant.helpers.entity_registry"] = MagicMock()
     sys.modules["homeassistant.helpers.area_registry"] = MagicMock()
-    sys.modules["homeassistant.helpers.storage"] = MagicMock()
+    # Real enough to exercise "notify once per card version": the card's reload
+    # notice is decided by what a previous run persisted, so a MagicMock that
+    # cannot remember anything would make the interesting case untestable.
+    storage_module = MagicMock()
+    storage_module.Store = Store
+    sys.modules["homeassistant.helpers.storage"] = storage_module
+
+    translation_module = MagicMock()
+    translation_module.async_get_translations = AsyncMock(return_value={})
+    sys.modules["homeassistant.helpers.translation"] = translation_module
+
     sys.modules["homeassistant.helpers.aiohttp_client"] = MagicMock()
     sys.modules["homeassistant.helpers.typing"] = MagicMock()
 
     # Component platforms with entity description stubs
-    sys.modules["homeassistant.components"] = MagicMock()
+    components_module = MagicMock()
+    sys.modules["homeassistant.components"] = components_module
 
     sensor_module = MagicMock()
     sensor_module.SensorEntityDescription = SensorEntityDescription
@@ -393,6 +448,43 @@ def mock_homeassistant():
     light_module.ColorMode = ColorMode
     sys.modules["homeassistant.components.light"] = light_module
 
+    # The card's "reload your tab" notice. Kept a plain MagicMock so tests can
+    # assert on the call, which is the whole observable behavior.
+    persistent_notification_module = MagicMock()
+    persistent_notification_module.async_create = MagicMock()
+    sys.modules["homeassistant.components.persistent_notification"] = (
+        persistent_notification_module
+    )
+    components_module.persistent_notification = persistent_notification_module
+
+    # HTTP + websocket, used by the job card's backend. The decorators are
+    # identity functions: the handlers are plain callables and the schemas are
+    # Home Assistant's business, not ours, so tests exercise the handler bodies.
+    @dataclass
+    class StaticPathConfig:
+        """Stub for homeassistant.components.http.StaticPathConfig."""
+
+        url_path: str
+        path: str
+        cache_headers: bool = True
+
+    http_module = MagicMock()
+    http_module.StaticPathConfig = StaticPathConfig
+    sys.modules["homeassistant.components.http"] = http_module
+
+    websocket_api_module = MagicMock()
+    websocket_api_module.websocket_command = lambda schema: (lambda func: func)
+    websocket_api_module.async_response = lambda func: func
+    websocket_api_module.require_admin = lambda func: func
+    websocket_api_module.async_register_command = lambda hass, handler: None
+    sys.modules["homeassistant.components.websocket_api"] = websocket_api_module
+    # `from homeassistant.components import websocket_api` reads an *attribute*
+    # of the parent package, which the MagicMock above would happily invent -
+    # handing back a mock decorator that turns every handler into a MagicMock.
+    # Bind the real stub so the import resolves to it.
+    components_module.websocket_api = websocket_api_module
+    components_module.http = http_module
+
     image_module = MagicMock()
     image_module.ImageEntity = ImageEntity
     sys.modules["homeassistant.components.image"] = image_module
@@ -417,6 +509,8 @@ def mock_homeassistant():
     exceptions_module = MagicMock()
     exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
     exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed
+    exceptions_module.HomeAssistantError = HomeAssistantError
+    exceptions_module.ServiceValidationError = ServiceValidationError
     sys.modules["homeassistant.exceptions"] = exceptions_module
 
     # Data entry flow

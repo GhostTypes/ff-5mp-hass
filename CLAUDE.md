@@ -3,7 +3,9 @@
 Guidance for AI coding assistants working in this repository.
 
 ## Current State (July 2026)
-- Integration **version 1.3.4** (in-flight; 1.3.3 tagged 2026-07-26).
+- Integration **version 1.4.0** (in-flight; 1.3.3 tagged 2026-07-26).
+- Ships a **Lovelace card** (`frontend/ff-job-card.js`) for starting local prints with material matching, served and registered by the integration itself — no separate HACS entry, no Lovelace resource step.
+- **Languages: English + German**, for the integration (`translations/`) and independently for the card (`frontend/translations/`). Both follow the user's HA profile language. German contributed by @RedAces in PR #19.
 - Provides a complete Home Assistant experience for FlashForge printers using the **HTTP API only**.
 - Entities shipped: **56 total** (38 sensors, 5 binary sensors, 2 switches, 4 buttons, 1 select, 1 MJPEG camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
 - Diagnostics download supported (`diagnostics.py`), with credentials and identifiers redacted.
@@ -61,6 +63,7 @@ Treat this file as the living source of truth for workflows and expectations—u
   - Filtration as a `select` entity with Off / Internal / External states (Adventurer 5M Pro / Creator 5 Pro only — gated on `is_pro OR is_creator5_pro`).
   - Pause / resume / cancel / clear-status buttons with post-action refresh.
   - MJPEG camera entity targeting `http://<ip>:8080/?action=stream`.
+  - **Starting local prints** from the job card: the printer's ten most recent files (all models), with per-file metadata and per-tool material data where the model reports it (AD5X / Creator 5 series), plus the tool-to-slot material matching dialog those models need. Ported from FlashForgeUI-Electron's job picker + material-matching dialog.
 - **Architecture**
   - HTTP API only (`FlashForgeClient.info/control/job_control`).
   - `DataUpdateCoordinator` refresh loop with error recovery and client cleanup.
@@ -84,9 +87,14 @@ Treat this file as the living source of truth for workflows and expectations—u
 - `button.py` – Pause / resume / cancel / clear-status commands; request a refresh after each action.
 - `camera.py` – MJPEG camera entity (`http://<ip>:8080/?action=stream` by default).
 - `image.py` – Hosts the active-print g-code thumbnail entity AND the 4 Material Station slot swatch entities (AD5X / Creator 5 series). Swatches are PNG-encoded by `render_swatch_bytes()` (Pillow) inside an executor; both entity types cache rendered bytes and only invalidate on input change.
+- `job.py` – Local print jobs: normalizing `/gcodeList` entries and Material Station slots for the card, the material-matching rules, and the per-model print-start dispatch (Creator 5 → `start_creator5_job`; AD5X → multi- or single-color; 5M → `print_local_file`). **This module is the authority on matching, not the card.**
+- `websocket.py` – The card's backend: `flashforge/entries`, `flashforge/files/list`, `flashforge/file/thumbnail`, `flashforge/job/prepare`, `flashforge/job/start`. `job/start` re-fetches the file list and re-reads the live slots, re-deriving every material name and color rather than trusting the client's payload.
+- `card.py` – Serves the whole `frontend/` **directory** via `StaticPathConfig` (the card fetches its own translations from under it) and registers the JS with `frontend.add_extra_js_url`, once per HA run, cache-busted by the manifest version. Also owns `_async_notify_if_reload_needed()`, the one-time "reload this page" persistent notification — HA cannot add a module to an already-open tab, so the notification is the only channel that reaches one. Keyed on card version via a `Store`: fires on install/upgrade, silent on restart.
+- `frontend/ff-job-card.js` – The job card. Vanilla custom element, **no build step** — the committed file is the shipped file. Bump `CARD_VERSION` alongside the manifest. Carries **no user-facing copy**; every string is looked up through `this._t(key, vars)` / `this._t.plural(key, count)`.
+- `frontend/translations/<lang>.json` – The card's copy. Fetched at runtime from `hass.locale.language` (primary subtag only: `de-CH` loads `de.json`), cached per language across all cards on a dashboard. `en.json` is the per-key fallback, so a lagging translation degrades one string at a time. Adding a language is exactly one new file — no JS, no Python. Fetch outcomes are cached selectively: a 404 sticks (settled until the next release changes `?v=`), a *failed* request is dropped and retried with backoff, so one blip during an HA restart cannot pin the card to English for the life of the page. If the files cannot be served at all, `t()` returns the key rather than an empty string — a strange label is a legible failure, a blank card is not.
 - `diagnostics.py` – HA diagnostics download payload, with `check_code`, `serial_number`, MAC/IP, and cloud registration codes redacted.
 - `util.py` – Shared helpers: `async_close_flashforge_client()` for HTTP session disposal, `build_device_info()` for the per-platform device-info dict.
-- `strings.json` / `translations/en.json` – Keep UI copy synchronized between minimal strings and translation files. Every entity carries a `translation_key`; `name`s never set manually on entities.
+- `strings.json` / `translations/<lang>.json` – Home Assistant-side UI copy (entities, config flow, errors). Keep `strings.json` and `translations/en.json` synchronized; `tests/unit/test_translations.py` enforces it. Every entity carries a `translation_key`; `name`s never set manually on entities. Shipping: English, German (`de.json`, contributed by @RedAces).
 
 ## External Dependencies & Linked Projects
 - **flashforge-python-api (ff-5mp-api-py)** – Located at `C:\Users\coper\Documents\GitHub\1flashforge_printers\ff-5mp-api-py`. Supplies the async HTTP client, discovery helpers, models (`FFMachineInfo`, `MachineState`, etc.). Do not duplicate API logic in this repository—import from the library.
@@ -240,6 +248,8 @@ The local Home Assistant instance runs in **WSL2 only** with the following setup
    - Respect capability flags (`client.led_control` for the LED switch) before exposing features. Do NOT trust the `/product`-derived `client.filtration_control` — gate filtration/TVOC/chamber-fan on model identity (`is_pro OR is_creator5_pro`) instead.
 2. **Localization & Docs**
    - Update `strings.json` and `translations/en.json` whenever UI text changes.
+   - **Never put user-facing copy in `ff-job-card.js`.** Card strings go in `frontend/translations/en.json` and are read via `this._t(...)`; a literal in the JS is invisible to translators and cannot be fixed without a code change. `tests/unit/test_translations.py` catches orphaned keys but cannot catch a hardcoded string — review for it.
+   - Adding a card string means adding it to `en.json` only. Other languages fall back to English until someone translates them; do **not** machine-translate the other files to keep them "complete".
    - Reflect behavior changes in `README.md`, `CHANGELOG.md`, `CLAUDE.md`, and `AGENTS.md` as appropriate.
 3. **Versioning**
    - Bump `manifest.json` `version` with every release-worthy change; keep `CHANGELOG.md` and release notes in sync.
@@ -282,7 +292,10 @@ pytest tests/unit/ --cov=custom_components.flashforge --cov-report=term-missing
 pytest tests/unit/test_sensor_value_functions.py -v
 ```
 
-**Current coverage (131 tests total):**
+**Current coverage (203 tests total):**
+- `tests/unit/test_translations.py` – every translation file against English: key sets, `{placeholder}` sets, plural pairs, and that no card string is orphaned
+- `tests/unit/test_job.py` – material matching rules, auto-match suggestions, per-model print-start dispatch
+- `tests/unit/test_websocket.py` – the job card's websocket commands, including the refusal to start a material-station print without mappings
 - `tests/unit/test_discovery.py` – printer discovery protocol
 - `tests/unit/test_sensor_value_functions.py` – sensor value extraction
 - `tests/unit/test_binary_sensor_value_functions.py` – binary sensor logic
@@ -346,6 +359,9 @@ pytest tests/unit/test_sensor_value_functions.py -v
    - Image: g-code thumbnail of the active print.
    - Image (AD5X / Creator 5 series): four Material Station slot swatches (`image.*_ifs_slot_1..4`) showing material color + label, "EMPTY" tile for unloaded slots.
 5. Trigger control actions (pause/resume/cancel, switches) and ensure states refresh.
+5a. Add the **FlashForge Print Job** card to a dashboard (card picker → search "FlashForge"), confirm the file list, thumbnails and metadata load, then start a print:
+   - single-material file → confirmation dialog only;
+   - multi-material file on an AD5X / Creator 5 → matching dialog with the mapping pre-filled; verify a PLA tool cannot be mapped to a PETG slot, that an empty slot is unselectable, and that a color mismatch warns but still starts.
 6. Observe coordinator error handling by temporarily disconnecting the printer and confirming entities surface availability correctly.
 
 ### Testing Utilities
@@ -360,6 +376,8 @@ pytest tests/unit/test_sensor_value_functions.py -v
   - `config_flow.py` `_is_supported_detail()` reads the raw `/detail` payload during pairing and rejects PIDs not in `SUPPORTED_PIDS = {35, 36, 38, 40, 41}`. This is the early gate, and "early" is load-bearing: it consumes `client.info.get_detail_raw()` (the undecoded JSON dict), so it runs before **any** validation, not just before `FFMachineInfo` parsing. Until v1.3.4 it read `pid` off a parsed `FFPrinterDetail`, which meant a supported Creator 5 could be turned away because an unrelated field (`chamberTemp: -108`) failed validation first — see issue #18. Never move this gate back onto a parsed model.
   - The library (`flashforge-python-api>=1.3.4`) populates `FFMachineInfo.is_pro` / `is_ad5x` / `is_creator5` / `is_creator5_pro` / `pid` from the same value. This is the runtime gate — used by `switch.py` for LED availability and by `sensor.py` / `select.py` for model-identity capability gating.
   - Both gates are needed: the config-flow gate stops unsupported hardware from being added at all; the runtime gate keeps capability flags accurate after pairing. Do NOT substring-match `info.name` — it's user-mutable and broke detection in v1.1.8 (see issue #13 / v1.1.9 fix). When new modern PIDs ship, update `SUPPORTED_PIDS` here AND coordinate a library bump.
+- **The job card is an untrusted client** – Every matching rule enforced in `ff-job-card.js` is enforced again in `job.py`, which re-derives materials and colors from the file list and the live station report. The JS copy exists to explain the rule as the user clicks; the Python copy is what decides. A websocket client that skips the dialog entirely must not be able to start a material-station print without mappings — `ws_start_job` refuses it. When you change a rule, change both, and add the test to `tests/unit/test_job.py`.
+- **File listing is capped at ten files, deliberately** – `/gcodeList` returns the ten most recent files and nothing more; the full local listing exists only over TCP `M661`, which this integration does not speak. This will read as a bug report eventually; it is the documented cost of the HTTP-only policy, not an oversight. The 5M / 5M Pro additionally report names only (no `gcodeListDetail`), so they get no metadata and no matching step.
 - **Error handling** – Wrap connection issues in `ConfigEntryNotReady`, `ConnectionError`, or `UpdateFailed` so Home Assistant retries gracefully.
 - **"Could not read the answer" is not "could not reach the printer"** – The library returns `None` when a request never got through and raises `FlashForgeResponseError` when the printer answered with a payload it could not parse. Keep the two apart all the way to the user: the config flow maps the exception to `invalid_response` (never `cannot_connect`), and `__init__.py` / `coordinator.py` log it with wording that sends the user to the issue tracker rather than to their router. Collapsing them is what made issue #18 take three releases — the printer was reachable and the credentials were correct the entire time, but every message on offer said otherwise.
 - **Never constrain the *range* of data received from the printer** – This applies to the API library, but the integration is what breaks when it is violated. Pydantic validates a model all-or-nothing, so a `ge=`/`le=` on any one of ~50 `/detail` fields can fail the whole response and take every entity offline. Firmware also signals absent hardware with out-of-band sentinels (`chamberTemp: -108`) rather than by omitting the field, so "impossible" values are normal. Inbound models validate types only; range constraints belong on outbound command models, where a bad value is our own bug. If a new field needs bounds, normalize it in the parser, don't reject it.

@@ -1,0 +1,292 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "FlashForge-Drucker einrichten",
+        "description": "Wähle aus, wie der FlashForge-Drucker eingerichtet werden soll",
+        "data": {
+          "discovery_mode": "Einrichtungsart"
+        }
+      },
+      "discovery": {
+        "title": "Suche nach FlashForge-Druckern",
+        "description": "Es wird im Netzwerk nach unterstützten Druckern im LAN-Modus gesucht ..."
+      },
+      "select_printer": {
+        "title": "Drucker auswählen",
+        "description": "Mehrere Drucker gefunden. Wähle den Drucker aus, der eingerichtet werden soll.",
+        "data": {
+          "printer": "Drucker"
+        }
+      },
+      "credentials": {
+        "title": "Check-Code eingeben",
+        "description": "Gib den Check-Code für {name} unter {ip} ein (Seriennummer: {serial}). Der Check-Code steht auf dem Display des Druckers in den Einstellungen zum LAN-Modus.",
+        "data": {
+          "check_code": "Check-Code"
+        }
+      },
+      "manual": {
+        "title": "Manuelle Einrichtung",
+        "description": "Gib die Daten deines AD5X, Adventurer 5M, Adventurer 5M Pro, Creator 5 oder Creator 5 Pro manuell ein",
+        "data": {
+          "name": "Druckername",
+          "ip_address": "IP-Adresse",
+          "serial_number": "Seriennummer",
+          "check_code": "Check-Code"
+        }
+      },
+      "reauth_confirm": {
+        "title": "FlashForge erneut authentifizieren",
+        "description": "Der Check-Code für {name} wird nicht mehr akzeptiert. Gib den aktuellen Check-Code aus dem LAN-Modus-Bildschirm des Druckers ein.",
+        "data": {
+          "check_code": "Check-Code"
+        }
+      },
+      "reconfigure": {
+        "title": "FlashForge neu konfigurieren",
+        "description": "Verbindungsdaten für {name} aktualisieren (Seriennummer: {serial}).",
+        "data": {
+          "ip_address": "IP-Adresse",
+          "check_code": "Check-Code"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Der Drucker war nicht erreichbar. Prüfe, ob die IP-Adresse stimmt, der Drucker eingeschaltet und der LAN-Modus aktiviert ist.",
+      "invalid_response": "Der Drucker hat geantwortet, aber diese Integration konnte die Antwort nicht lesen. Das ist kein Netzwerk- oder Zugangsdatenproblem, sondern ein Fehler in der Integration. Bitte melde ihn unter https://github.com/GhostTypes/ff-5mp-hass/issues und füge das Home-Assistant-Protokoll mit aktivierter Debug-Protokollierung für custom_components.flashforge bei.",
+      "invalid_auth": "Der Drucker hat Seriennummer oder Check-Code abgelehnt. Prüfe beides auf dem Display des Druckers (die Seriennummer enthält das Präfix SN).",
+      "no_printers_found": "Keine FlashForge-Drucker im Netzwerk gefunden. Bitte die manuelle Einrichtung verwenden.",
+      "unsupported_printers_found": "Diese Integration unterstützt nur die Modelle AD5X, Adventurer 5M, Adventurer 5M Pro, Creator 5 und Creator 5 Pro.",
+      "discovery_failed": "Die Suche nach Druckern ist fehlgeschlagen. Bitte die manuelle Einrichtung verwenden.",
+      "unsupported_printer": "Diese Integration unterstützt nur die Modelle AD5X, Adventurer 5M, Adventurer 5M Pro, Creator 5 und Creator 5 Pro.",
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten. Bitte erneut versuchen."
+    },
+    "abort": {
+      "already_configured": "Dieser Drucker ist bereits eingerichtet",
+      "reconfigure_no_entry": "Der zu ändernde Konfigurationseintrag wurde nicht gefunden",
+      "reauth_successful": "Erneute Authentifizierung erfolgreich",
+      "reconfigure_successful": "Neukonfiguration erfolgreich"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "FlashForge-Optionen",
+        "description": "Optionen für den FlashForge-Drucker einstellen",
+        "data": {
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "override_led_availability": "LED-Schalter immer anzeigen (Fähigkeitsprüfung des Druckers übergehen)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "machine_status": {
+        "name": "Druckerstatus",
+        "state": {
+          "ready": "Bereit",
+          "busy": "Beschäftigt",
+          "calibrating": "Kalibrierung",
+          "error": "Fehler",
+          "heating": "Heizt auf",
+          "printing": "Druckt",
+          "pausing": "Wird pausiert",
+          "paused": "Pausiert",
+          "cancelled": "Abgebrochen",
+          "completed": "Abgeschlossen",
+          "unknown": "Unbekannt"
+        }
+      },
+      "nozzle_temperature": {
+        "name": "Düsentemperatur"
+      },
+      "nozzle_target_temperature": {
+        "name": "Düsen-Zieltemperatur"
+      },
+      "bed_temperature": {
+        "name": "Betttemperatur"
+      },
+      "bed_target_temperature": {
+        "name": "Bett-Zieltemperatur"
+      },
+      "print_progress": {
+        "name": "Druckfortschritt"
+      },
+      "current_file": {
+        "name": "Aktuelle Datei"
+      },
+      "current_layer": {
+        "name": "Aktuelle Schicht"
+      },
+      "total_layers": {
+        "name": "Schichten gesamt"
+      },
+      "elapsed_time": {
+        "name": "Verstrichene Zeit"
+      },
+      "remaining_time": {
+        "name": "Verbleibende Zeit"
+      },
+      "print_completion_time": {
+        "name": "Voraussichtliches Druckende"
+      },
+      "filament_length": {
+        "name": "Filamentlänge"
+      },
+      "filament_weight": {
+        "name": "Filamentgewicht"
+      },
+      "print_speed": {
+        "name": "Druckgeschwindigkeit"
+      },
+      "cooling_fan_speed": {
+        "name": "Drehzahl Bauteillüfter"
+      },
+      "chamber_fan_speed": {
+        "name": "Drehzahl Kammerlüfter"
+      },
+      "tvoc": {
+        "name": "TVOC"
+      },
+      "z_offset": {
+        "name": "Z-Offset"
+      },
+      "nozzle_size": {
+        "name": "Düsendurchmesser"
+      },
+      "filament_type": {
+        "name": "Filamenttyp"
+      },
+      "active_ifs_slot": {
+        "name": "Aktiver Slot der Materialstation"
+      },
+      "lifetime_filament": {
+        "name": "Filamentverbrauch gesamt"
+      },
+      "lifetime_runtime": {
+        "name": "Betriebsdauer gesamt"
+      },
+      "firmware_version": {
+        "name": "Firmware-Version"
+      },
+      "ip_address": {
+        "name": "IP-Adresse"
+      },
+      "free_disk_space": {
+        "name": "Freier Speicherplatz"
+      },
+      "error_code": {
+        "name": "Fehlercode"
+      },
+      "tool_1_temperature": {
+        "name": "Temperatur Werkzeug 1"
+      },
+      "tool_2_temperature": {
+        "name": "Temperatur Werkzeug 2"
+      },
+      "tool_3_temperature": {
+        "name": "Temperatur Werkzeug 3"
+      },
+      "tool_4_temperature": {
+        "name": "Temperatur Werkzeug 4"
+      },
+      "tool_1_target_temperature": {
+        "name": "Zieltemperatur Werkzeug 1"
+      },
+      "tool_2_target_temperature": {
+        "name": "Zieltemperatur Werkzeug 2"
+      },
+      "tool_3_target_temperature": {
+        "name": "Zieltemperatur Werkzeug 3"
+      },
+      "tool_4_target_temperature": {
+        "name": "Zieltemperatur Werkzeug 4"
+      },
+      "chamber_temperature": {
+        "name": "Kammertemperatur"
+      },
+      "chamber_target_temperature": {
+        "name": "Kammer-Zieltemperatur"
+      }
+    },
+    "binary_sensor": {
+      "is_printing": {
+        "name": "Druckt"
+      },
+      "is_online": {
+        "name": "Online"
+      },
+      "has_error": {
+        "name": "Fehler"
+      },
+      "is_paused": {
+        "name": "Pausiert"
+      },
+      "door_open": {
+        "name": "Tür offen"
+      }
+    },
+    "switch": {
+      "led": {
+        "name": "LED"
+      },
+      "camera": {
+        "name": "Kamera"
+      }
+    },
+    "button": {
+      "pause_print": {
+        "name": "Druck pausieren"
+      },
+      "resume_print": {
+        "name": "Druck fortsetzen"
+      },
+      "cancel_print": {
+        "name": "Druck abbrechen"
+      },
+      "clear_status": {
+        "name": "Status zurücksetzen"
+      }
+    },
+    "select": {
+      "filtration_mode": {
+        "name": "Filtermodus",
+        "state": {
+          "off": "Aus",
+          "internal": "Intern",
+          "external": "Extern"
+        }
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": "Kamera"
+      }
+    },
+    "image": {
+      "current_file_thumbnail": {
+        "name": "Vorschau der aktuellen Datei"
+      },
+      "ifs_slot_1": {
+        "name": "Materialstation Slot 1"
+      },
+      "ifs_slot_2": {
+        "name": "Materialstation Slot 2"
+      },
+      "ifs_slot_3": {
+        "name": "Materialstation Slot 3"
+      },
+      "ifs_slot_4": {
+        "name": "Materialstation Slot 4"
+      }
+    }
+  },
+  "notifications": {
+    "card_reload": {
+      "title": "Die FlashForge-Druckauftragskarte ist bereit",
+      "message": "Die Karte „FlashForge Print Job“ wurde soeben installiert oder aktualisiert. Lade diese Seite neu (Strg+R, auf dem Mac Cmd+R), damit sie geladen wird – bis dahin erscheint die Karte nicht in der Kartenauswahl und Dashboards, die sie bereits verwenden, zeigen einen Fehler. Das ist nur einmal pro Update nötig."
+    }
+  }
+}
