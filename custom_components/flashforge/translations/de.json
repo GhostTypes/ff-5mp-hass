@@ -100,64 +100,161 @@
           "unknown": "Unbekannt"
         }
       },
-      "nozzle_temperature": { "name": "Düsentemperatur" },
-      "nozzle_target_temperature": { "name": "Düsen-Zieltemperatur" },
-      "bed_temperature": { "name": "Betttemperatur" },
-      "bed_target_temperature": { "name": "Bett-Zieltemperatur" },
-      "print_progress": { "name": "Druckfortschritt" },
-      "current_file": { "name": "Aktuelle Datei" },
-      "current_layer": { "name": "Aktuelle Schicht" },
-      "total_layers": { "name": "Schichten gesamt" },
-      "elapsed_time": { "name": "Verstrichene Zeit" },
-      "remaining_time": { "name": "Verbleibende Zeit" },
-      "print_completion_time": { "name": "Voraussichtliches Druckende" },
-      "filament_length": { "name": "Filamentlänge" },
-      "filament_weight": { "name": "Filamentgewicht" },
-      "print_speed": { "name": "Druckgeschwindigkeit" },
-      "cooling_fan_speed": { "name": "Drehzahl Bauteillüfter" },
-      "chamber_fan_speed": { "name": "Drehzahl Kammerlüfter" },
-      "tvoc": { "name": "TVOC" },
-      "z_offset": { "name": "Z-Offset" },
-      "nozzle_size": { "name": "Düsendurchmesser" },
-      "filament_type": { "name": "Filamenttyp" },
-      "active_ifs_slot": { "name": "Aktiver Slot der Materialstation" },
-      "lifetime_filament": { "name": "Filamentverbrauch gesamt" },
-      "lifetime_runtime": { "name": "Betriebsdauer gesamt" },
-      "firmware_version": { "name": "Firmware-Version" },
-      "ip_address": { "name": "IP-Adresse" },
-      "free_disk_space": { "name": "Freier Speicherplatz" },
-      "error_code": { "name": "Fehlercode" },
-      "tool_1_temperature": { "name": "Temperatur Werkzeug 1" },
-      "tool_2_temperature": { "name": "Temperatur Werkzeug 2" },
-      "tool_3_temperature": { "name": "Temperatur Werkzeug 3" },
-      "tool_4_temperature": { "name": "Temperatur Werkzeug 4" },
-      "tool_1_target_temperature": { "name": "Zieltemperatur Werkzeug 1" },
-      "tool_2_target_temperature": { "name": "Zieltemperatur Werkzeug 2" },
-      "tool_3_target_temperature": { "name": "Zieltemperatur Werkzeug 3" },
-      "tool_4_target_temperature": { "name": "Zieltemperatur Werkzeug 4" },
-      "chamber_temperature": { "name": "Kammertemperatur" },
-      "chamber_target_temperature": { "name": "Kammer-Zieltemperatur" }
+      "nozzle_temperature": {
+        "name": "Düsentemperatur"
+      },
+      "nozzle_target_temperature": {
+        "name": "Düsen-Zieltemperatur"
+      },
+      "bed_temperature": {
+        "name": "Betttemperatur"
+      },
+      "bed_target_temperature": {
+        "name": "Bett-Zieltemperatur"
+      },
+      "print_progress": {
+        "name": "Druckfortschritt"
+      },
+      "current_file": {
+        "name": "Aktuelle Datei"
+      },
+      "current_layer": {
+        "name": "Aktuelle Schicht"
+      },
+      "total_layers": {
+        "name": "Schichten gesamt"
+      },
+      "elapsed_time": {
+        "name": "Verstrichene Zeit"
+      },
+      "remaining_time": {
+        "name": "Verbleibende Zeit"
+      },
+      "print_completion_time": {
+        "name": "Voraussichtliches Druckende"
+      },
+      "filament_length": {
+        "name": "Filamentlänge"
+      },
+      "filament_weight": {
+        "name": "Filamentgewicht"
+      },
+      "print_speed": {
+        "name": "Druckgeschwindigkeit"
+      },
+      "cooling_fan_speed": {
+        "name": "Drehzahl Bauteillüfter"
+      },
+      "chamber_fan_speed": {
+        "name": "Drehzahl Kammerlüfter"
+      },
+      "tvoc": {
+        "name": "TVOC"
+      },
+      "z_offset": {
+        "name": "Z-Offset"
+      },
+      "nozzle_size": {
+        "name": "Düsendurchmesser"
+      },
+      "filament_type": {
+        "name": "Filamenttyp"
+      },
+      "active_ifs_slot": {
+        "name": "Aktiver Slot der Materialstation"
+      },
+      "lifetime_filament": {
+        "name": "Filamentverbrauch gesamt"
+      },
+      "lifetime_runtime": {
+        "name": "Betriebsdauer gesamt"
+      },
+      "firmware_version": {
+        "name": "Firmware-Version"
+      },
+      "ip_address": {
+        "name": "IP-Adresse"
+      },
+      "free_disk_space": {
+        "name": "Freier Speicherplatz"
+      },
+      "error_code": {
+        "name": "Fehlercode"
+      },
+      "tool_1_temperature": {
+        "name": "Temperatur Werkzeug 1"
+      },
+      "tool_2_temperature": {
+        "name": "Temperatur Werkzeug 2"
+      },
+      "tool_3_temperature": {
+        "name": "Temperatur Werkzeug 3"
+      },
+      "tool_4_temperature": {
+        "name": "Temperatur Werkzeug 4"
+      },
+      "tool_1_target_temperature": {
+        "name": "Zieltemperatur Werkzeug 1"
+      },
+      "tool_2_target_temperature": {
+        "name": "Zieltemperatur Werkzeug 2"
+      },
+      "tool_3_target_temperature": {
+        "name": "Zieltemperatur Werkzeug 3"
+      },
+      "tool_4_target_temperature": {
+        "name": "Zieltemperatur Werkzeug 4"
+      },
+      "chamber_temperature": {
+        "name": "Kammertemperatur"
+      },
+      "chamber_target_temperature": {
+        "name": "Kammer-Zieltemperatur"
+      }
     },
     "binary_sensor": {
-      "is_printing": { "name": "Druckt" },
-      "is_online": { "name": "Online" },
-      "has_error": { "name": "Fehler" },
-      "is_paused": { "name": "Pausiert" },
-      "door_open": { "name": "Tür offen" }
+      "is_printing": {
+        "name": "Druckt"
+      },
+      "is_online": {
+        "name": "Online"
+      },
+      "has_error": {
+        "name": "Fehler"
+      },
+      "is_paused": {
+        "name": "Pausiert"
+      },
+      "door_open": {
+        "name": "Tür offen"
+      }
     },
     "switch": {
-      "led": { "name": "LED" },
-      "camera": { "name": "Kamera" }
+      "led": {
+        "name": "LED"
+      },
+      "camera": {
+        "name": "Kamera"
+      }
     },
     "button": {
-      "pause_print": { "name": "Druck pausieren" },
-      "resume_print": { "name": "Druck fortsetzen" },
-      "cancel_print": { "name": "Druck abbrechen" },
-      "clear_status": { "name": "Status zurücksetzen" },
-      "print_selected_file": { "name": "Ausgewählte Datei drucken" }
+      "pause_print": {
+        "name": "Druck pausieren"
+      },
+      "resume_print": {
+        "name": "Druck fortsetzen"
+      },
+      "cancel_print": {
+        "name": "Druck abbrechen"
+      },
+      "clear_status": {
+        "name": "Status zurücksetzen"
+      },
+      "print_selected_file": {
+        "name": "Ausgewählte Datei drucken"
+      }
     },
     "select": {
-      "local_file_selection": { "name": "Lokale Dateiauswahl" },
       "filtration_mode": {
         "name": "Filtermodus",
         "state": {
@@ -165,17 +262,38 @@
           "internal": "Intern",
           "external": "Extern"
         }
+      },
+      "local_file_selection": {
+        "name": "Lokale Dateiauswahl"
       }
     },
     "camera": {
-      "camera": { "name": "Kamera" }
+      "camera": {
+        "name": "Kamera"
+      }
     },
     "image": {
-      "current_file_thumbnail": { "name": "Vorschau der aktuellen Datei" },
-      "ifs_slot_1": { "name": "Materialstation Slot 1" },
-      "ifs_slot_2": { "name": "Materialstation Slot 2" },
-      "ifs_slot_3": { "name": "Materialstation Slot 3" },
-      "ifs_slot_4": { "name": "Materialstation Slot 4" }
+      "current_file_thumbnail": {
+        "name": "Vorschau der aktuellen Datei"
+      },
+      "ifs_slot_1": {
+        "name": "Materialstation Slot 1"
+      },
+      "ifs_slot_2": {
+        "name": "Materialstation Slot 2"
+      },
+      "ifs_slot_3": {
+        "name": "Materialstation Slot 3"
+      },
+      "ifs_slot_4": {
+        "name": "Materialstation Slot 4"
+      }
+    }
+  },
+  "notifications": {
+    "card_reload": {
+      "title": "FlashForge-Auftragskarte ist bereit",
+      "message": "Die Karte „FlashForge Print Job“ wurde gerade installiert oder aktualisiert. Lade diese Seite neu (Strg+R, auf dem Mac Cmd+R), damit sie erkannt wird — bis dahin erscheint die Karte nicht in der Kartenauswahl, und Dashboards, die sie bereits verwenden, zeigen einen Fehler. Das ist nur einmal pro Aktualisierung nötig."
     }
   },
   "services": {

@@ -100,64 +100,161 @@
           "unknown": "Unknown"
         }
       },
-      "nozzle_temperature": { "name": "Nozzle Temperature" },
-      "nozzle_target_temperature": { "name": "Nozzle Target Temperature" },
-      "bed_temperature": { "name": "Bed Temperature" },
-      "bed_target_temperature": { "name": "Bed Target Temperature" },
-      "print_progress": { "name": "Print Progress" },
-      "current_file": { "name": "Current File" },
-      "current_layer": { "name": "Current Layer" },
-      "total_layers": { "name": "Total Layers" },
-      "elapsed_time": { "name": "Elapsed Time" },
-      "remaining_time": { "name": "Remaining Time" },
-      "print_completion_time": { "name": "Print Completion Time" },
-      "filament_length": { "name": "Filament Length" },
-      "filament_weight": { "name": "Filament Weight" },
-      "print_speed": { "name": "Print Speed" },
-      "cooling_fan_speed": { "name": "Cooling Fan Speed" },
-      "chamber_fan_speed": { "name": "Chamber Fan Speed" },
-      "tvoc": { "name": "TVOC" },
-      "z_offset": { "name": "Z-Axis Offset" },
-      "nozzle_size": { "name": "Nozzle Size" },
-      "filament_type": { "name": "Filament Type" },
-      "active_ifs_slot": { "name": "Active Material Station Slot" },
-      "lifetime_filament": { "name": "Lifetime Filament Usage" },
-      "lifetime_runtime": { "name": "Lifetime Runtime" },
-      "firmware_version": { "name": "Firmware Version" },
-      "ip_address": { "name": "IP Address" },
-      "free_disk_space": { "name": "Free Disk Space" },
-      "error_code": { "name": "Error Code" },
-      "tool_1_temperature": { "name": "Tool 1 Temperature" },
-      "tool_2_temperature": { "name": "Tool 2 Temperature" },
-      "tool_3_temperature": { "name": "Tool 3 Temperature" },
-      "tool_4_temperature": { "name": "Tool 4 Temperature" },
-      "tool_1_target_temperature": { "name": "Tool 1 Target Temperature" },
-      "tool_2_target_temperature": { "name": "Tool 2 Target Temperature" },
-      "tool_3_target_temperature": { "name": "Tool 3 Target Temperature" },
-      "tool_4_target_temperature": { "name": "Tool 4 Target Temperature" },
-      "chamber_temperature": { "name": "Chamber Temperature" },
-      "chamber_target_temperature": { "name": "Chamber Target Temperature" }
+      "nozzle_temperature": {
+        "name": "Nozzle Temperature"
+      },
+      "nozzle_target_temperature": {
+        "name": "Nozzle Target Temperature"
+      },
+      "bed_temperature": {
+        "name": "Bed Temperature"
+      },
+      "bed_target_temperature": {
+        "name": "Bed Target Temperature"
+      },
+      "print_progress": {
+        "name": "Print Progress"
+      },
+      "current_file": {
+        "name": "Current File"
+      },
+      "current_layer": {
+        "name": "Current Layer"
+      },
+      "total_layers": {
+        "name": "Total Layers"
+      },
+      "elapsed_time": {
+        "name": "Elapsed Time"
+      },
+      "remaining_time": {
+        "name": "Remaining Time"
+      },
+      "print_completion_time": {
+        "name": "Print Completion Time"
+      },
+      "filament_length": {
+        "name": "Filament Length"
+      },
+      "filament_weight": {
+        "name": "Filament Weight"
+      },
+      "print_speed": {
+        "name": "Print Speed"
+      },
+      "cooling_fan_speed": {
+        "name": "Cooling Fan Speed"
+      },
+      "chamber_fan_speed": {
+        "name": "Chamber Fan Speed"
+      },
+      "tvoc": {
+        "name": "TVOC"
+      },
+      "z_offset": {
+        "name": "Z-Axis Offset"
+      },
+      "nozzle_size": {
+        "name": "Nozzle Size"
+      },
+      "filament_type": {
+        "name": "Filament Type"
+      },
+      "active_ifs_slot": {
+        "name": "Active Material Station Slot"
+      },
+      "lifetime_filament": {
+        "name": "Lifetime Filament Usage"
+      },
+      "lifetime_runtime": {
+        "name": "Lifetime Runtime"
+      },
+      "firmware_version": {
+        "name": "Firmware Version"
+      },
+      "ip_address": {
+        "name": "IP Address"
+      },
+      "free_disk_space": {
+        "name": "Free Disk Space"
+      },
+      "error_code": {
+        "name": "Error Code"
+      },
+      "tool_1_temperature": {
+        "name": "Tool 1 Temperature"
+      },
+      "tool_2_temperature": {
+        "name": "Tool 2 Temperature"
+      },
+      "tool_3_temperature": {
+        "name": "Tool 3 Temperature"
+      },
+      "tool_4_temperature": {
+        "name": "Tool 4 Temperature"
+      },
+      "tool_1_target_temperature": {
+        "name": "Tool 1 Target Temperature"
+      },
+      "tool_2_target_temperature": {
+        "name": "Tool 2 Target Temperature"
+      },
+      "tool_3_target_temperature": {
+        "name": "Tool 3 Target Temperature"
+      },
+      "tool_4_target_temperature": {
+        "name": "Tool 4 Target Temperature"
+      },
+      "chamber_temperature": {
+        "name": "Chamber Temperature"
+      },
+      "chamber_target_temperature": {
+        "name": "Chamber Target Temperature"
+      }
     },
     "binary_sensor": {
-      "is_printing": { "name": "Printing" },
-      "is_online": { "name": "Online" },
-      "has_error": { "name": "Error" },
-      "is_paused": { "name": "Paused" },
-      "door_open": { "name": "Door Open" }
+      "is_printing": {
+        "name": "Printing"
+      },
+      "is_online": {
+        "name": "Online"
+      },
+      "has_error": {
+        "name": "Error"
+      },
+      "is_paused": {
+        "name": "Paused"
+      },
+      "door_open": {
+        "name": "Door Open"
+      }
     },
     "switch": {
-      "led": { "name": "LED" },
-      "camera": { "name": "Camera" }
+      "led": {
+        "name": "LED"
+      },
+      "camera": {
+        "name": "Camera"
+      }
     },
     "button": {
-      "pause_print": { "name": "Pause Print" },
-      "resume_print": { "name": "Resume Print" },
-      "cancel_print": { "name": "Cancel Print" },
-      "clear_status": { "name": "Clear Status" },
-      "print_selected_file": { "name": "Print Selected File" }
+      "pause_print": {
+        "name": "Pause Print"
+      },
+      "resume_print": {
+        "name": "Resume Print"
+      },
+      "cancel_print": {
+        "name": "Cancel Print"
+      },
+      "clear_status": {
+        "name": "Clear Status"
+      },
+      "print_selected_file": {
+        "name": "Print Selected File"
+      }
     },
     "select": {
-      "local_file_selection": { "name": "Local File Selection" },
       "filtration_mode": {
         "name": "Filtration Mode",
         "state": {
@@ -165,17 +262,38 @@
           "internal": "Internal",
           "external": "External"
         }
+      },
+      "local_file_selection": {
+        "name": "Local File Selection"
       }
     },
     "camera": {
-      "camera": { "name": "Camera" }
+      "camera": {
+        "name": "Camera"
+      }
     },
     "image": {
-      "current_file_thumbnail": { "name": "Current File Thumbnail" },
-      "ifs_slot_1": { "name": "Material Station Slot 1" },
-      "ifs_slot_2": { "name": "Material Station Slot 2" },
-      "ifs_slot_3": { "name": "Material Station Slot 3" },
-      "ifs_slot_4": { "name": "Material Station Slot 4" }
+      "current_file_thumbnail": {
+        "name": "Current File Thumbnail"
+      },
+      "ifs_slot_1": {
+        "name": "Material Station Slot 1"
+      },
+      "ifs_slot_2": {
+        "name": "Material Station Slot 2"
+      },
+      "ifs_slot_3": {
+        "name": "Material Station Slot 3"
+      },
+      "ifs_slot_4": {
+        "name": "Material Station Slot 4"
+      }
+    }
+  },
+  "notifications": {
+    "card_reload": {
+      "title": "FlashForge job card is ready",
+      "message": "The FlashForge Print Job card was just installed or updated. Reload this page (Ctrl+R, or Cmd+R on a Mac) to pick it up - until you do, the card will not appear in the card picker and dashboards already using it will show an error. This is only needed once per update."
     }
   },
   "services": {

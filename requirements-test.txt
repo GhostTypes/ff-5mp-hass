@@ -24,6 +24,11 @@ netifaces>=0.11.0
 # itself or importing the image platform fails at collection.
 pillow>=10.0.0
 
+# Schema validation for the job card's websocket commands. Home Assistant core
+# ships voluptuous, so it stays out of the manifest requirements; importing the
+# integration package pulls in websocket.py, which fails at collection without it.
+voluptuous>=0.13.0
+
 # NOTE: Integration tests requiring Home Assistant must run in WSL/Linux
 # Home Assistant and pytest-homeassistant-custom-component are Unix-only
 # For integration tests: see homeassistant/ directory with WSL setup

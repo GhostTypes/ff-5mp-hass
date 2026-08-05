@@ -4,11 +4,13 @@ Working agreement for AI assistants contributing to `ff-5mp-hass`.
 
 ## Project Snapshot
 - **Integration:** FlashForge printers for Home Assistant (HTTP API only).
-- **Current release:** `v1.3.0` (in-flight; not yet tagged). Last published: `v1.2.0`.
+- **Current release:** `v1.4.0` (in-flight; not yet tagged). Last published: `v1.3.3`.
 - **Supported printers:** `AD5X`, `Adventurer 5M`, `Adventurer 5M Pro`, `Creator 5`, and `Creator 5 Pro` only.
 - **Entities shipped:** 58 total (38 sensors, 5 binary sensors, 2 switches (the camera switch is not created on the Creator 5 series), 2 selects, 5 buttons, 1 camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
 - **Services:** `flashforge.print_file` — starts a file already stored on the printer (entity service on the Local File Selection entity).
 - **Key dependency:** `flashforge-python-api>=1.3.4` (see sibling repo `ff-5mp-api-py`).
+- **Also shipped:** a Lovelace card (`frontend/ff-job-card.js`) for browsing the printer's files, matching materials, and starting prints, served and registered by the integration itself and backed by four websocket commands (`websocket.py`, `job.py`).
+- **Languages:** English and German, for both the integration (`translations/`) and the card (`frontend/translations/`). German contributed by @RedAces.
 - **Primary references:** `CLAUDE.md` (agent workflow), `AGENTS.md` (this playbook), `README.md` (user docs), `CHANGELOG.md`, `homeassistant/README.md`, `HOME_ASSISTANT_DOCS_COMPANION.md`, and `HACS_PUBLISHER_COMPANION.md`.
 
 ## Agent Roles
@@ -33,9 +35,14 @@ Working agreement for AI assistants contributing to `ff-5mp-hass`.
   - Prepare GitHub releases and ensure README badges reflect the latest status.
 
 ## Shared Guidelines
-- Respect the HTTP-only policy—introduce TCP/G-code handling only by extending `flashforge-python-api`. The file list therefore comes from `files.get_recent_file_list()` (HTTP `/gcodeList`, most recent files only), never from the TCP directory listing.
+- Respect the HTTP-only policy—introduce TCP/G-code handling only by extending `flashforge-python-api`. This is why the job card lists ten files and not the printer's whole storage: the full local listing is TCP-only (`M661`). Do not "fix" that here.
+- **The card is a client, not an authority.** Anything the card sends is re-validated in `job.py` against the file list and the live Material Station report. Never move a matching rule into the JS only — the JS copy exists to explain the rule while the user clicks.
 - Treat the coordinator as the single source of truth; entities should not cache printer state.
 - Update `strings.json` and `translations/en.json` alongside config-flow text changes.
+- **Browser caching of the card is solved by the version query; the *page load order* is the real problem, and it has a shipped fix.** Two separate things get confused here:
+  - *Caching* is handled. `?v=<manifest version>` on the module and `?v=${CARD_VERSION}` on each translation file make a release reach an existing browser, because HA's service worker caches by URL. Both must move together — `tests/unit/test_card_version.py` enforces it. **Measured 2026-07-31:** with the service worker actively controlling the page, a *plain* reload picked up a bumped version for both files. Upgrades do **not** need a cache exorcism. Never unregister the service worker from card code — it is HA's own, registered at the frontend root, and evicting it takes out the whole app shell. Never bust with a timestamp either; that re-downloads everything on every dashboard load.
+  - *Staleness* is the real failure: `add_extra_js_url` runs during config-entry setup, and HA serves `/` for tens of seconds before that (observed directly). A page loaded in that window — or any tab open across a HACS install — has no reference to the card, and HA offers no way to inject one afterwards. The fix is `card.py` `_async_notify_if_reload_needed()`: a persistent notification reaches that tab over its live websocket. It is keyed on the card version in a `Store` so it fires on install/upgrade and stays silent on restarts. If you touch it, keep the key — a notice on every restart is one users learn to dismiss unread, which costs us the one moment it matters.
+- **User-facing copy never lives in code.** Integration strings go in `strings.json` + `translations/en.json`; the job card's strings go in `frontend/translations/en.json` and are read via `this._t(key, vars)`. A string literal in `ff-job-card.js` is unreachable by translators and needs a code change to fix — the one deliberate exception is the `window.customCards` picker entry, which is read synchronously at module load, before `hass` exists. Add new copy to `en.json` only and let other languages fall back; never machine-translate the other files to make them look complete. `tests/unit/test_translations.py` enforces key sets, placeholders, and plural pairs.
 - Keep imports ordered and comments purposeful.
 - Record any manual testing nuances in pull requests, issues, or release notes for future reference.
 - **Identify printers by PID, not name.** `config_flow.py` `_is_supported_detail()` checks the firmware-set `pid` on `/detail` against `SUPPORTED_PIDS = {35, 36, 38, 40, 41}` (5M, 5M Pro, AD5X, Creator 5, Creator 5 Pro); the upstream library (≥1.3.4) does the same internally to derive `is_pro` / `is_ad5x` / `is_creator5` / `is_creator5_pro`. The config-flow gate reads the **raw** `/detail` dict (`info.get_detail_raw()`), so model identity is established before any validation runs — reading `pid` off a parsed model let one unrelated bad field reject a supported printer (issue #18). The `name` field is user-mutable via the LCD or cloud and must never be substring-matched for model detection (broke in v1.1.8, fixed in v1.1.9 — see issue #13). Adding a new modern PID means updating `SUPPORTED_PIDS` here AND bumping the library dep floor.

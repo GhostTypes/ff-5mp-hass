@@ -13,6 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_IP_ADDRESS, CONF_NAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.loader import async_get_integration
 
 from .const import (
     CONF_CHECK_CODE,
@@ -23,7 +24,9 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import FlashForgeDataUpdateCoordinator, FlashForgeFileListCoordinator
+from .card import async_register_frontend
 from .util import async_close_flashforge_client
+from .websocket import async_register_websocket_commands
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,6 +44,17 @@ PLATFORMS: list[Platform] = [
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up FlashForge from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    # Register the job card and its websocket commands FIRST, before anything
+    # that talks to the printer. Both are global, printer-independent, and
+    # cheap - and everything below this point can raise ConfigEntryNotReady.
+    # Registering afterwards meant an offline printer took the card down with
+    # it: the module URL was never added to the frontend, so the card did not
+    # exist in the picker and dashboards using it showed "custom element
+    # doesn't exist" until the printer came back.
+    async_register_websocket_commands(hass)
+    integration = await async_get_integration(hass, DOMAIN)
+    await async_register_frontend(hass, str(integration.version))
 
     # Extract configuration
     ip_address = entry.data[CONF_IP_ADDRESS]

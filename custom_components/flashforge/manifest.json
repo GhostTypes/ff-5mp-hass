@@ -3,12 +3,13 @@
   "name": "FlashForge 3D Printer",
   "codeowners": ["@GhostTypes"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["http", "websocket_api"],
+  "after_dependencies": ["frontend"],
   "documentation": "https://github.com/GhostTypes/ff-5mp-hass",
   "homeassistant": "2025.1.0",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/GhostTypes/ff-5mp-hass/issues",
   "requirements": ["flashforge-python-api>=1.3.4"],
-  "version": "1.3.4"
+  "version": "1.4.0"
 }

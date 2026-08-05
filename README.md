@@ -65,6 +65,10 @@
     <td>Pause, resume, cancel print jobs, and clear printer status directly from Home Assistant</td>
   </tr>
   <tr>
+    <td>Print Job Card</td>
+    <td>Browse the files on the printer, match each tool to a Material Station slot (AD5X / Creator 5 series), and start the print — a dashboard card installed with the integration</td>
+  </tr>
+  <tr>
     <td rowspan="4"><b>Architecture</b></td>
     <td>HTTP-First Design</td>
     <td>Superior reliability compared to TCP-only implementations</td>
@@ -301,16 +305,75 @@
 
 
 <div align="center">
-  <h2>Printing Files Stored on the Printer</h2>
+  <h2>Starting Prints — the Job Card</h2>
 </div>
 
-`select.flashforge_local_file_selection` lists the files on the printer and records which one you want
-to print — picking one starts nothing. `button.flashforge_print_selected_file` is what starts the
-print; pressing it without a selection reports an error instead of starting anything.
+The integration ships a dashboard card for starting prints of files already on the printer, including the **material matching** step the AD5X and Creator 5 series need for multi-material files.
 
-The printer's HTTP API reports its **most recent files** (10 on current firmware), so the
-dropdown is not a full directory listing. Files outside that list can still be printed by
-passing their name to the service:
+**Adding it:** the card is installed and registered with the integration — there is no separate HACS entry and no Lovelace resource to add. Edit a dashboard → **Add card** → search for **FlashForge Print Job** → pick your printer.
+
+> [!NOTE]
+> **After installing or updating, reload the page once.** A browser tab loads the list of frontend modules when the page opens, so a tab that was already open before the install does not know the card exists yet — the picker will not offer it. The integration tells you when this applies: you will get a **notification in the sidebar** saying the card is ready. Press <kbd>Ctrl</kbd>+<kbd>R</kbd> (<kbd>Cmd</kbd>+<kbd>R</kbd> on a Mac) and it will be there. You will not be asked again until the next update.
+
+**Using it:**
+
+1. Pick a file. Each row shows its thumbnail, print time, filament weight and per-tool material swatches, where the printer reports them.
+2. Optionally tick **Level the bed before printing**.
+3. Press **Start print**.
+   - **Single-material file, or a printer with no Material Station** — a confirmation dialog, then the print starts.
+   - **Material Station file (AD5X / Creator 5 series)** — the matching dialog opens. Every tool in the file must be mapped to a loaded slot before the print can start. A sensible mapping is pre-filled for you; review it and press **Start print**, or click a tool and then the slot you want it to come from to change it.
+
+**The matching rules**, identical to the FlashForge desktop app:
+
+| Situation | Result |
+|-----------|--------|
+| Slot material differs from the tool's material | **Blocked** — PLA cannot be printed from a PETG slot |
+| Slot color differs from the tool's color | **Allowed**, with a warning — the print will come out a different color |
+| Slot is empty, or already assigned to another tool | Cannot be selected |
+| A tool is left unmapped | **Start print** stays disabled |
+
+> [!NOTE]
+> **Only the ten most recent files are listed, on every model.** That is what the printer's HTTP API offers; the full local file listing exists only over the legacy TCP channel this integration deliberately does not speak. Send a file from your slicer and it will appear at the top of the list.
+
+> [!NOTE]
+> Per-file metadata (print time, filament weight, per-tool materials) is reported by the AD5X and Creator 5 series. The 5M / 5M Pro report file names only, so those rows show a name and start without a matching step.
+
+<div align="center">
+  <h2>Languages</h2>
+</div>
+
+The integration and the job card both follow the language set in your Home Assistant profile — there is nothing to configure.
+
+| Language | Integration | Job card |
+|----------|-------------|----------|
+| English | ✅ | ✅ |
+| German (Deutsch) | ✅ | ✅ |
+
+German was contributed by [@RedAces](https://github.com/RedAces). Anything not yet translated falls back to English rather than showing a blank.
+
+<details>
+<summary><b>Adding a language</b></summary>
+
+Two files, both plain JSON, both copied from the English version beside them:
+
+1. **The integration** — copy `custom_components/flashforge/translations/en.json` to `<code>.json` (e.g. `fr.json`) and translate the values. Keys must match English exactly; Home Assistant has no per-key fallback here.
+2. **The job card** — copy `custom_components/flashforge/frontend/translations/en.json` the same way. Leave `{placeholders}` such as `{slot}` and `{tool}` intact and in a natural position for your language. Keys you omit fall back to English, so a partial translation is fine.
+
+Keep `_one` / `_other` pairs together (`tools_one`, `tools_other`) — they are chosen by count, and a missing half renders empty.
+
+Then run `pytest tests/unit/test_translations.py`, which checks both files against English for missing or unknown keys, mismatched placeholders, and incomplete plurals. No build step and no JavaScript changes are involved. PRs welcome.
+</details>
+
+<div align="center">
+  <h2>Starting Prints — Entities and the Service</h2>
+</div>
+
+Alongside the card, the same job can be started from entities, which is what
+automations and scripts need — a card cannot be triggered by one.
+
+`select.flashforge_local_file_selection` lists the files on the printer and records which
+one to print; picking one starts nothing. `button.flashforge_print_selected_file` starts it,
+and reports an error when nothing is selected.
 
 ```yaml
 action: flashforge.print_file
@@ -321,34 +384,18 @@ data:
   leveling_before_print: true    # optional, defaults to the integration option
 ```
 
-Whatever metadata the printer reports per file is available for cards and templates:
+`file_name` accepts any file on the printer, including ones outside the ten the API lists.
+Whatever metadata the printer reports per file is on the select entity for templates:
 
 ```yaml
 {{ state_attr('select.flashforge_local_file_selection', 'files') }}
-# AD5X (reports gcodeListDetail):
-# [{'name': 'benchy.3mf', 'printing_time': 3600, 'filament_weight': 25.5,
-#   'tool_count': 1, 'uses_material_station': False}, ...]
-# Creator 5 / 5 Pro (reports file names only):
-# [{'name': 'benchy.3mf'}, ...]
+# AD5X: [{'name': 'benchy.3mf', 'printing_time': 3600, 'filament_weight': 25.5, ...}, ...]
+# Creator 5 / 5 Pro: [{'name': 'benchy.3mf'}, ...]
 ```
 
-Keys the printer does not report are omitted rather than reported as `0`/`false`.
-The Creator 5 series returns plain file names on `/gcodeList`, so print time,
-filament weight, and tool count are simply not available there.
+Keys the printer does not report are omitted rather than reported as `0`/`false`. The file
+list refreshes every 60 seconds; `homeassistant.update_entity` on the select forces it.
 
-**Bed leveling** before a print is off by default and can be enabled in the integration's
-**Configure** dialog, or per call via `leveling_before_print`.
-
-**Material Station files** are started with per-tool material mappings derived from the
-file's own tool data combined with the colors the printer reports for the loaded slots —
-but only on printers that report that tool data (the AD5X). If the data is present but
-incomplete, the print is refused with an error rather than mapping materials by guesswork.
-The Creator 5 series reports no per-file tool data at all, so multi-material files are sent
-without mappings and the printer uses the tool/slot assignment stored in the file itself —
-verified on a Creator 5 Pro, which accepted and started a three-material file this way.
-
-The file list is refreshed every 60 seconds. To refresh it immediately (e.g. right after an
-upload), call `homeassistant.update_entity` on `select.flashforge_local_file_selection`.
 
 <div align="center">
   <h2>Usage Examples</h2>
@@ -472,6 +519,7 @@ entities:
 | **Connection Failed During Setup** | Setup fails with connection error | • Verify printer has LAN mode enabled<br>• Check the check code is correct (codes can expire)<br>• Ensure printer is powered on and connected to network<br>• Test API access manually: `http://<PRINTER_IP>:8898/info`<br>• Verify the serial number includes the `SN` prefix and matches the value shown on the printer settings screen |
 | **Entities Show "Unavailable"** | Integration installed but entities are unavailable | • Check printer is online and reachable<br>• Verify credentials are still valid<br>• Reload the integration: Settings → Integrations → FlashForge → ⋮ → Reload<br>• Check Home Assistant logs for connection errors |
 | **Camera Entity Unavailable** | The camera entity shows unavailable | • The camera entity is always created, but it only becomes available when the printer reports an active OEM camera stream URL or the standard OEM fallback stream endpoint responds<br>• Verify the OEM camera is installed and enabled on the printer<br>• The `switch.flashforge_camera` power control remains Pro-only |
+| **Remaining / Completion Time Missing or Wrong** | `sensor.flashforge_remaining_time` stays at `0` and `sensor.flashforge_print_completion_time` stays `unknown` during an active print | • FlashForge firmware only calculates an ETA when the sliced file carries its own print-time metadata, which is written by FlashForge's OrcaSlicer fork and FlashPrint but **not** by regular OrcaSlicer or similar slicers<br>• Without it the printer reports `estimatedTime: 0` over the API, so there is no accurate value for the integration to display<br>• The printer's own screen still shows a time because it reads the file directly — that isn't exposed over the HTTP API<br>• Fix: run [orca2flashforge](https://github.com/GhostTypes/orca2flashforge) as a post-processing script in your slicer to add the metadata FlashForge firmware expects |
 | **Python API Not Installing** | Integration fails due to missing flashforge-python-api | • Verify Home Assistant has internet access<br>• Check PyPI is reachable: https://pypi.org/project/flashforge-python-api/<br>• Try manual install: `pip install flashforge-python-api` in HA environment<br>• Restart Home Assistant after installation |
 | **Static IP Recommended** | - | For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes. |
 

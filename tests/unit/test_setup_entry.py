@@ -31,6 +31,8 @@ async def _run_setup(entry_options: dict):
     hass.data = {}
     hass.config_entries = Mock()
     hass.config_entries.async_forward_entry_setups = AsyncMock()
+    # Setup also serves the job card's JS from the integration directory.
+    hass.http.async_register_static_paths = AsyncMock()
 
     entry = Mock()
     entry.entry_id = "entry-1"
