@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **The job card never registered on Home Assistant 2026.7.** The frontend replaces `window.customElements` with its own scoped registry while it boots, and `add_extra_js_url` puts the card in the document — so it ran *before* that swap and defined its elements in the registry the frontend then stopped consulting. Nothing was logged: `customElements.define()` succeeded, it just went to the wrong place. The symptoms all pointed elsewhere — the module was served with `200` and `text/javascript`, the console banner appeared, `window.customCards` listed the card (that lives on `window`, not on the registry), and yet the picker did not offer it and dashboards using it showed *"custom element doesn't exist"*. Re-importing the identical file after boot worked and did **not** raise "already defined", which is what finally identified two separate registries. The card now defines its elements through a guarded helper and repeats the registration if the frontend exchanges the registry; a browser that never swaps registers exactly once. Reported and diagnosed on HA 2026.7.4 with Firefox; the workaround until now was adding the card as a Lovelace resource, which loads after the boot and was never affected.
+
 ## [1.4.0] - 2026-07-31
 
 ### Added
