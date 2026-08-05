@@ -1150,8 +1150,56 @@ class FlashForgeJobCardEditor extends HTMLElement {
   }
 }
 
-customElements.define("flashforge-job-card", FlashForgeJobCard);
-customElements.define("flashforge-job-card-editor", FlashForgeJobCardEditor);
+// Home Assistant replaces `window.customElements` with its own scoped registry
+// while the frontend boots. This module is injected into the document by
+// `add_extra_js_url`, so it runs *before* that swap - defining the elements only
+// here puts them in a registry the frontend then stops consulting. The failure
+// is silent and misleading: no console error, `window.customCards` carries the
+// picker entry (it lives on `window`, not on the registry), and any dashboard
+// using the card reports "custom element doesn't exist". Cards loaded as
+// Lovelace resources are unaffected because those are fetched after the boot.
+//
+// So: define into whatever registry is current, and again if the frontend
+// exchanges it. Every call is guarded, so a browser that never swaps registers
+// exactly once.
+const ELEMENTS = [
+  ["flashforge-job-card", FlashForgeJobCard],
+  ["flashforge-job-card-editor", FlashForgeJobCardEditor],
+];
+
+function defineOnce(name, constructor) {
+  if (customElements.get(name)) return;
+  try {
+    customElements.define(name, constructor);
+  } catch (err) {
+    // A registry may refuse a constructor another registry already used. A
+    // fresh subclass behaves identically and is accepted.
+    customElements.define(name, class extends constructor {});
+  }
+}
+
+function registerElements() {
+  for (const [name, constructor] of ELEMENTS) defineOnce(name, constructor);
+}
+
+registerElements();
+
+// The swap happens during the frontend's bootstrap, for which this module has
+// no event to listen to. Watch for the registry object being exchanged, and
+// stop after a minute so a page that never swaps does not poll forever.
+const REGISTRY_POLL_MS = 200;
+const REGISTRY_TIMEOUT_MS = 60000;
+const initialRegistry = window.customElements;
+let registryWaited = 0;
+const registryWatch = setInterval(() => {
+  registryWaited += REGISTRY_POLL_MS;
+  if (window.customElements !== initialRegistry) {
+    registerElements();
+    clearInterval(registryWatch);
+  } else if (registryWaited >= REGISTRY_TIMEOUT_MS) {
+    clearInterval(registryWatch);
+  }
+}, REGISTRY_POLL_MS);
 
 // English only, unavoidably: this runs at module load, before any element is
 // constructed and before `hass` (and therefore the user's language) exists.
