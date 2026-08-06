@@ -66,7 +66,7 @@
   </tr>
   <tr>
     <td>Print Job Card</td>
-    <td>Browse the files on the printer, match each tool to a Material Station slot (AD5X / Creator 5 series), and start the print — a dashboard card installed with the integration</td>
+    <td>Browse the files on the printer, match each tool to a Material Station slot (AD5X), and start the print — a dashboard card installed with the integration</td>
   </tr>
   <tr>
     <td rowspan="4"><b>Architecture</b></td>
@@ -306,7 +306,7 @@
   <h2>Starting Prints — the Job Card</h2>
 </div>
 
-The integration ships a dashboard card for starting prints of files already on the printer, including the **material matching** step the AD5X and Creator 5 series need for multi-material files.
+The integration ships a dashboard card for starting prints of files already on the printer, including the **material matching** step the AD5X needs for multi-material files.
 
 **Adding it:** the card is installed and registered with the integration — there is no separate HACS entry and no Lovelace resource to add. Edit a dashboard → **Add card** → search for **FlashForge Print Job** → pick your printer.
 
@@ -319,7 +319,7 @@ The integration ships a dashboard card for starting prints of files already on t
 2. Optionally tick **Level the bed before printing**.
 3. Press **Start print**.
    - **Single-material file, or a printer with no Material Station** — a confirmation dialog, then the print starts.
-   - **Material Station file (AD5X / Creator 5 series)** — the matching dialog opens. Every tool in the file must be mapped to a loaded slot before the print can start. A sensible mapping is pre-filled for you; review it and press **Start print**, or click a tool and then the slot you want it to come from to change it.
+   - **Material Station file (AD5X)** — the matching dialog opens. Every tool in the file must be mapped to a loaded slot before the print can start. A sensible mapping is pre-filled for you; review it and press **Start print**, or click a tool and then the slot you want it to come from to change it.
 
 **The matching rules**, identical to the FlashForge desktop app:
 
@@ -334,7 +334,9 @@ The integration ships a dashboard card for starting prints of files already on t
 > **Only the ten most recent files are listed, on every model.** That is what the printer's HTTP API offers; the full local file listing exists only over the legacy TCP channel this integration deliberately does not speak. Send a file from your slicer and it will appear at the top of the list.
 
 > [!NOTE]
-> Per-file metadata (print time, filament weight, per-tool materials) is reported by the AD5X and Creator 5 series. The 5M / 5M Pro report file names only, so those rows show a name and start without a matching step.
+> **Per-file metadata (print time, filament weight, per-tool materials) is reported by the AD5X only.** The 5M / 5M Pro and the **Creator 5 / Creator 5 Pro** report file names only, so those rows show a name and start without a matching step.
+>
+> On the Creator 5 series this is a firmware limitation, not an omission here: its `/gcodeList` response carries no per-file detail at all, so there is nothing to build a matching dialog from. The Material Station slot entities still work — those come from a different endpoint — and matching still applies when you send a multi-material file from your slicer, because the printer does the matching itself at upload time.
 
 <div align="center">
   <h2>Languages</h2>

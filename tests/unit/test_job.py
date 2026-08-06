@@ -162,6 +162,33 @@ class TestRequiresMaterialMatching:
             file_entry, make_slots((1, "PLA", "#FF0000"))
         )
 
+    def test_creator5_file_never_requires_matching(self):
+        """A Creator 5 with a full Material Station still gets no matching dialog.
+
+        This is the exact shape a Creator 5 / Creator 5 Pro produces: `/gcodeList`
+        answers with bare file names - no `gcodeListDetail`, so no per-tool material
+        data - while `/detail` reports four loaded slots. Confirmed against real
+        Creator 5 Pro hardware (2026-08-05); only the AD5X reports per-tool data,
+        despite the Creator 5 being the newer printer.
+
+        Both halves matter. Populated slots prove the printer *has* a station, so
+        this cannot pass merely because the station looks absent - the file side is
+        what is missing, and it is unknowable over HTTP. If this test ever fails,
+        something started inventing tool data (synthesizing a tool per file, or
+        filling it from the slot report). That would open the matching dialog on a
+        Creator 5 and send the printer a mapping it never described.
+        """
+        file_entry = file_to_dict(FFGcodeFileEntry(gcodeFileName="anchor knauf 3.3mf"))
+        loaded_station = make_slots(
+            (1, "PLA", "#FF0000"),
+            (2, "PLA", "#00FF00"),
+            (3, "PETG", "#0000FF"),
+            (4, "PLA", "#FFFFFF"),
+        )
+
+        assert not requires_material_matching(file_entry, loaded_station)
+        assert auto_match(file_entry, loaded_station) == []
+
 
 @pytest.mark.unit
 class TestAutoMatch:

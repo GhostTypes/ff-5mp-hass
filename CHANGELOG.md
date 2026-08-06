@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Start prints from Home Assistant, with material matching.** A new dashboard card — **FlashForge Print Job** — lists the files on the printer and starts them, including the tool-to-slot matching that multi-material files need on the AD5X and Creator 5 series. The card is installed and registered by the integration itself: no separate HACS entry, no Lovelace resource to add. Add it from the card picker and choose your printer.
+- **Start prints from Home Assistant, with material matching.** A new dashboard card — **FlashForge Print Job** — lists the files on the printer and starts them, including the tool-to-slot matching that multi-material files need on the AD5X. The card is installed and registered by the integration itself: no separate HACS entry, no Lovelace resource to add. Add it from the card picker and choose your printer.
+
+  Material matching is **AD5X-only**, because it is the only model whose `/gcodeList` reports per-tool material data. The 5M / 5M Pro and the Creator 5 series list file names only, so their files start from a plain confirmation dialog.
 
   The matching dialog is a port of the FlashForge desktop app's, down to its rules: a material mismatch blocks the print, a *color* mismatch only warns (it prints fine, in the wrong color), empty and already-assigned slots cannot be picked, and every tool in the file must be mapped before the job can start. A mapping is pre-filled from the file's own slicer assignment and the filament actually loaded, so the usual case is one confirmation — but nothing starts on a mapping the user has not seen. Groundwork, testing, and the original implementation by [@RedAces](https://github.com/RedAces) in [#19](https://github.com/GhostTypes/ff-5mp-hass/pull/19).
 
