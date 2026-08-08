@@ -11,7 +11,7 @@ Guidance for AI coding assistants working in this repository.
 - Diagnostics download supported (`diagnostics.py`), with credentials and identifiers redacted.
 - Reauthentication and reconfigure flows supported in addition to the original setup paths.
 - UI config flow supports automatic discovery, manual entry, credential validation, and an adjustable polling interval (5–300 s, default 10 s).
-- Depends on `flashforge-python-api>=1.3.4` from the companion repository `ff-5mp-api-py`.
+- Depends on `flashforge-python-api>=1.3.5` from the companion repository `ff-5mp-api-py`. The 1.3.5 floor is load-bearing: it carries the `"pause"` status mapping, without which the Creator 5 Pro clog fix below reports nothing.
 
 ## Development Requirements
 - **Home Assistant Core**: 2026.4.2 (current stable)
