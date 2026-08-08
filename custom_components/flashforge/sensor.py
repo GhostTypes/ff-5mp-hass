@@ -357,7 +357,11 @@ _BASE_SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = (
         translation_key="error_code",
         icon="mdi:alert-octagon",
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        # Enabled by default: on a Creator 5 Pro this is the only channel that
+        # says *why* a print stopped. A clog pauses the job and fills
+        # `errorCode` without ever entering the ERROR state, so the code itself
+        # is the whole diagnosis. Raw, unmapped - "E0163" is at least something
+        # to search for; an invented description would not be.
         value_fn=lambda data: data.error_code if data.error_code else None,
     ),
 )
