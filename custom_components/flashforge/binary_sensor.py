@@ -52,7 +52,16 @@ BINARY_SENSORS: tuple[FlashForgeBinarySensorEntityDescription, ...] = (
         translation_key="has_error",
         device_class=BinarySensorDeviceClass.PROBLEM,
         icon="mdi:alert-circle",
-        value_fn=lambda data: data.machine_state == MachineState.ERROR,
+        # Two independent signals, and the printer does not always use the one
+        # this sensor used to read. A Creator 5 Pro that detects a clog does not
+        # enter the ERROR state: it pauses the print and fills `errorCode`
+        # (observed live as `E0163` at 89% of a print, while `status` read
+        # "pause"). Asking only about the state left the problem sensor silent
+        # for the whole outage - the one entity whose job is to say that
+        # something needs attention.
+        value_fn=lambda data: (
+            data.machine_state == MachineState.ERROR or bool(data.error_code)
+        ),
     ),
     FlashForgeBinarySensorEntityDescription(
         key="is_paused",
