@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The job card never registered on Home Assistant 2026.7.** The frontend replaces `window.customElements` with its own scoped registry while it boots, and `add_extra_js_url` puts the card in the document — so it ran *before* that swap and defined its elements in the registry the frontend then stopped consulting. Nothing was logged: `customElements.define()` succeeded, it just went to the wrong place. The symptoms all pointed elsewhere — the module was served with `200` and `text/javascript`, the console banner appeared, `window.customCards` listed the card (that lives on `window`, not on the registry), and yet the picker did not offer it and dashboards using it showed *"custom element doesn't exist"*. Re-importing the identical file after boot worked and did **not** raise "already defined", which is what finally identified two separate registries. The card now defines its elements through a guarded helper and repeats the registration if the frontend exchanges the registry; a browser that never swaps registers exactly once. Reported and diagnosed on HA 2026.7.4 with Firefox; the workaround until now was adding the card as a Lovelace resource, which loads after the boot and was never affected.
 
+## [Unreleased]
+
+### Fixed
+
+- **The Error binary sensor stayed off while the printer sat on a detected clog.** It asked only whether the machine state was `ERROR`, but a Creator 5 Pro that detects a clog does not enter that state: it pauses the print and fills `errorCode`. Observed live at 89 % of a print (pid 41, firmware 1.9.5) — the printer displayed *"Clog detected"*, `/detail` reported `status: "pause"` with `errorCode: "E0163"`, and Home Assistant showed no problem on any channel: the Error sensor was `off`, the Paused sensor was `off` (the raw `"pause"` did not map to `PAUSED` — fixed in `flashforge-python-api`), and Machine Status read `unknown`. `binary_sensor.<printer>_error` now also turns on when the printer reports a non-empty error code, whatever state it reports alongside it.
+
+  The **Error Code** sensor, which carries the code itself, is disabled by default and has to be enabled per entity — worth considering as a default, since on this model it is the only channel that says *why* a print stopped.
+
 ## [1.4.0] - 2026-07-31
 
 ### Added

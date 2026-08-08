@@ -30,6 +30,9 @@ class TestBinarySensorValueFunctions:
         # Create a mock FFMachineInfo object
         self.mock_data = Mock()
         self.mock_data.machine_state = MachineState.READY
+        # A printer with nothing wrong reports an empty error code. Left as a
+        # bare Mock this would be truthy, which is not what any printer sends.
+        self.mock_data.error_code = ""
 
     def get_sensor_by_key(self, key: str):
         """Helper to get binary sensor description by key."""
@@ -107,6 +110,37 @@ class TestBinarySensorValueFunctions:
         self.mock_data.machine_state = MachineState.PAUSED
         sensor = self.get_sensor_by_key("has_error")
         assert sensor.value_fn(self.mock_data) is False
+
+    def test_has_error_true_when_the_printer_reports_a_code_while_paused(self):
+        """A clog pauses the print and fills errorCode; the state stays PAUSED.
+
+        Observed live on a Creator 5 Pro (pid 41, firmware 1.9.5): the print
+        stopped at 89%, the printer displayed "Clog detected", `/detail`
+        reported `status: "pause"` with `errorCode: "E0163"` - and the problem
+        sensor stayed off, because it only asked about the machine state. The
+        one entity meant to say "something needs attention" said nothing for the
+        entire outage.
+        """
+        self.mock_data.machine_state = MachineState.PAUSED
+        self.mock_data.error_code = "E0163"
+        sensor = self.get_sensor_by_key("has_error")
+        assert sensor.value_fn(self.mock_data) is True
+
+    def test_has_error_true_when_a_code_arrives_in_any_state(self):
+        """The code is the signal; the state it arrives in is the printer's business."""
+        sensor = self.get_sensor_by_key("has_error")
+        for state in [MachineState.READY, MachineState.PRINTING, MachineState.BUSY]:
+            self.mock_data.machine_state = state
+            self.mock_data.error_code = "E0163"
+            assert sensor.value_fn(self.mock_data) is True, f"Failed for state {state}"
+
+    def test_has_error_ignores_an_empty_code(self):
+        """An empty string is what a healthy printer reports, not an error."""
+        sensor = self.get_sensor_by_key("has_error")
+        for empty in ["", None]:
+            self.mock_data.machine_state = MachineState.PRINTING
+            self.mock_data.error_code = empty
+            assert sensor.value_fn(self.mock_data) is False, f"Failed for {empty!r}"
 
     # is_paused tests
     def test_is_paused_true_when_paused(self):
