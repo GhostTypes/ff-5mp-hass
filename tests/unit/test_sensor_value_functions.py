@@ -446,6 +446,34 @@ class TestSensorValueFunctions:
         self.mock_data.completion_time = datetime(2026, 6, 26, 9, 47, 12)
         assert _completion_time(self.mock_data) is None
 
+    def test_print_completion_time_returns_none_unless_printing(self):
+        """Only a print that is advancing reports a completion time.
+
+        The printer freezes ``estimatedTime`` whenever the job is not
+        progressing, so the library's ``now() + estimatedTime`` would recede by
+        a minute every minute. The remaining-duration sensor stays correct; the
+        timestamp cannot. HEATING is in this list for the same reason as the
+        paused states - the warmup does not advance the job, it just drifts for
+        minutes rather than hours.
+        """
+        for state in (
+            MachineState.PAUSED,
+            MachineState.PAUSING,
+            MachineState.HEATING,
+            MachineState.READY,
+            MachineState.ERROR,
+            MachineState.COMPLETED,
+        ):
+            self.mock_data.machine_state = state
+            self.mock_data.completion_time = datetime(2026, 6, 26, 9, 47, 12)
+            assert _completion_time(self.mock_data) is None, state
+
+    def test_remaining_time_still_reported_while_paused(self):
+        """The duration sensor is unaffected by the pause gate above."""
+        self.mock_data.machine_state = MachineState.PAUSED
+        self.mock_data.estimated_time = 3600
+        assert self.get_sensor_by_key("remaining_time").value_fn(self.mock_data) == 3600
+
     def test_print_completion_time_preserves_aware_datetime(self):
         """Aware datetimes pass through unchanged (tz already set)."""
         from datetime import timedelta, timezone

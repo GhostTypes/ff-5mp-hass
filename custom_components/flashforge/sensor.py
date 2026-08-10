@@ -59,15 +59,21 @@ def _completion_time(data: FFMachineInfo) -> datetime | None:
     default timezone. Aware datetimes pass through unchanged.
 
     Timezone-stamping approach adapted from pcamp96 (GhostTypes/ff-5mp-hass#15).
+
+    PRINTING is the only allowed state. The firmware freezes ``estimatedTime``
+    whenever the print is not advancing, so the library's ``completion_time``
+    (``now() + estimatedTime``, recomputed every poll) would step forward one
+    minute per minute and a paused print would appear to recede forever.
+    HEATING is excluded for the same reason as PAUSED/PAUSING - the pre-print
+    warmup does not advance the job either, it just drifts for minutes rather
+    than hours. The ``remaining_time`` sensor is unaffected: the duration stays
+    correct, only its conversion to an absolute timestamp does not.
+    ``flashforge-python-api`` >= 1.4.0 already returns ``None`` here; the state
+    check is kept so the sensor is correct against older libraries too.
     """
     if not data.estimated_time:
         return None
-    if data.machine_state not in (
-        MachineState.PRINTING,
-        MachineState.PAUSED,
-        MachineState.PAUSING,
-        MachineState.HEATING,
-    ):
+    if data.machine_state is not MachineState.PRINTING:
         return None
     ts = data.completion_time
     if ts is None:
