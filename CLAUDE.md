@@ -2,8 +2,8 @@
 
 Guidance for AI coding assistants working in this repository.
 
-## Current State (July 2026)
-- Integration **version 1.4.0** (in-flight; 1.3.3 tagged 2026-07-26).
+## Current State (August 2026)
+- Integration **version 1.4.0**, tagged and released 2026-08-10 (previous published release: 1.3.4, 2026-07-26). Releases fire on a `v*` tag push — `.github/workflows/release.yml` extracts the matching `## [X.Y.Z]` CHANGELOG section for the notes, so the section must exist before the tag is pushed.
 - Ships a **Lovelace card** (`frontend/ff-job-card.js`) for starting local prints with material matching, served and registered by the integration itself — no separate HACS entry, no Lovelace resource step.
 - **Languages: English + German**, for the integration (`translations/`) and independently for the card (`frontend/translations/`). Both follow the user's HA profile language. German contributed by @RedAces in PR #19.
 - Provides a complete Home Assistant experience for FlashForge printers using the **HTTP API only**.
@@ -11,7 +11,7 @@ Guidance for AI coding assistants working in this repository.
 - Diagnostics download supported (`diagnostics.py`), with credentials and identifiers redacted.
 - Reauthentication and reconfigure flows supported in addition to the original setup paths.
 - UI config flow supports automatic discovery, manual entry, credential validation, and an adjustable polling interval (5–300 s, default 10 s).
-- Depends on `flashforge-python-api>=1.3.5` from the companion repository `ff-5mp-api-py`. The 1.3.5 floor is load-bearing: it carries the `"pause"` status mapping, without which the Creator 5 Pro clog fix below reports nothing.
+- Depends on `flashforge-python-api>=1.3.5` from the companion repository `ff-5mp-api-py`. The 1.3.5 floor is load-bearing: it carries the `"pause"` status mapping, without which the Creator 5 Pro clog fix below reports nothing. The floor stays at 1.3.5 deliberately even though 1.4.0 is released — nothing here requires it, and every state check the integration needs is enforced locally (see *Print Completion Time* below). Raise it only when a feature actually needs something 1.4.0 added.
 
 ## Development Requirements
 - **Home Assistant Core**: 2026.4.2 (current stable)
@@ -383,6 +383,7 @@ pytest tests/unit/test_sensor_value_functions.py -v
 - **Error handling** – Wrap connection issues in `ConfigEntryNotReady`, `ConnectionError`, or `UpdateFailed` so Home Assistant retries gracefully.
 - **"Could not read the answer" is not "could not reach the printer"** – The library returns `None` when a request never got through and raises `FlashForgeResponseError` when the printer answered with a payload it could not parse. Keep the two apart all the way to the user: the config flow maps the exception to `invalid_response` (never `cannot_connect`), and `__init__.py` / `coordinator.py` log it with wording that sends the user to the issue tracker rather than to their router. Collapsing them is what made issue #18 take three releases — the printer was reachable and the credentials were correct the entire time, but every message on offer said otherwise.
 - **Never constrain the *range* of data received from the printer** – This applies to the API library, but the integration is what breaks when it is violated. Pydantic validates a model all-or-nothing, so a `ge=`/`le=` on any one of ~50 `/detail` fields can fail the whole response and take every entity offline. Firmware also signals absent hardware with out-of-band sentinels (`chamberTemp: -108`) rather than by omitting the field, so "impossible" values are normal. Inbound models validate types only; range constraints belong on outbound command models, where a bad value is our own bug. If a new field needs bounds, normalize it in the parser, don't reject it.
+- **Print Completion Time is gated on an actively advancing print, and the gate lives here** – `ADVANCING_STATES` in `sensor.py` contains `PRINTING` and nothing else, so `sensor.<printer>_print_completion_time` is `unknown` in every other state. The library derives that value as `now() + estimated_time`, a conversion that only holds still while the firmware counts `estimated_time` down; it freezes that field the moment the print stops advancing, so the sensor stepped forward a minute per minute and receded for as long as a pause lasted. **`HEATING` is excluded along with the paused states** — the pre-print warmup does not advance the job either and drifts identically, just for minutes rather than hours. `remaining_time` is unaffected and stays correct throughout a pause; it is the reading that remains meaningful there. Keep the check in the integration even though `flashforge-python-api` 1.4.0 returns `None` itself: it is what makes the sensor correct against the declared 1.3.5 floor. Do not "restore" a value during a pause by widening the set.
 - **Gate capabilities on what the printer reported, not on its model family** – Options exist within a family: the heated chamber is a Creator 5 extra, so chamber entities gate on `has_chamber_sensor`, not `is_creator5`. Model identity is the right signal only for things the model genuinely cannot do at all (filtration, the Creator 5 camera switch).
 - **Entity additions**
   - Add to the appropriate entity tuple.

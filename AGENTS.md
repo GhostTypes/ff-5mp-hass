@@ -4,10 +4,10 @@ Working agreement for AI assistants contributing to `ff-5mp-hass`.
 
 ## Project Snapshot
 - **Integration:** FlashForge printers for Home Assistant (HTTP API only).
-- **Current release:** `v1.4.0` (in-flight; not yet tagged). Last published: `v1.3.3`.
+- **Current release:** `v1.4.0`, tagged and published 2026-08-10. Previous published release: `v1.3.4`.
 - **Supported printers:** `AD5X`, `Adventurer 5M`, `Adventurer 5M Pro`, `Creator 5`, and `Creator 5 Pro` only.
 - **Entities shipped:** 56 total (38 sensors, 5 binary sensors, 2 switches (the camera switch is not created on the Creator 5 series), 1 select, 4 buttons, 1 camera, 5 images — the g-code thumbnail plus 4 Material Station slot color swatches).
-- **Key dependency:** `flashforge-python-api>=1.3.5` (see sibling repo `ff-5mp-api-py`).
+- **Key dependency:** `flashforge-python-api>=1.3.5` (see sibling repo `ff-5mp-api-py`; 1.4.0 is released but the floor stays at 1.3.5 deliberately — see `CLAUDE.md`).
 - **Also shipped:** a Lovelace card (`frontend/ff-job-card.js`) for browsing the printer's files, matching materials, and starting prints, served and registered by the integration itself and backed by four websocket commands (`websocket.py`, `job.py`).
 - **Languages:** English and German, for both the integration (`translations/`) and the card (`frontend/translations/`). German contributed by @RedAces.
 - **Primary references:** `CLAUDE.md` (agent workflow), `AGENTS.md` (this playbook), `README.md` (user docs), `CHANGELOG.md`, `homeassistant/README.md`, `HOME_ASSISTANT_DOCS_COMPANION.md`, and `HACS_PUBLISHER_COMPANION.md`.
