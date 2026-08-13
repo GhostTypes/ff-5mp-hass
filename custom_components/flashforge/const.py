@@ -22,7 +22,6 @@ ATTR_LAYER = "layer"
 ATTR_TOTAL_LAYERS = "total_layers"
 ATTR_PRINT_PROGRESS = "print_progress"
 ATTR_ELAPSED_TIME = "elapsed_time"
-ATTR_REMAINING_TIME = "remaining_time"
 
 # Printer states
 STATE_IDLE = "READY"
