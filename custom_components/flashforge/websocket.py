@@ -39,6 +39,7 @@ from .job import (
     slots_to_list,
     validate_mappings,
 )
+from .util import is_creator5_series
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -155,6 +156,10 @@ async def ws_list_files(
             "files": files,
             "slots": slots,
             "has_material_station": bool(slots),
+            # The Creator 5 series cannot start a previously-uploaded local job
+            # over the HTTP API (only a fresh 3mf upload+start works), so the
+            # card shows an info message in place of the file list / Start button.
+            "is_creator5_series": is_creator5_series(coordinator.data),
             # Advisory only - the printer is the one that refuses a print while
             # it is busy, and it is better at knowing than we are.
             "machine_state": getattr(machine_state, "value", None),

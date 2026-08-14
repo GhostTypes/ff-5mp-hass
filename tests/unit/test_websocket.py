@@ -34,10 +34,17 @@ from custom_components.flashforge.websocket import (
 ENTRY_ID = "entry-1"
 
 
-def make_machine_info(slots=((1, "PLA", "#FF0000"), (2, "PETG", "#000000"))):
+def make_machine_info(
+    slots=((1, "PLA", "#FF0000"), (2, "PETG", "#000000")),
+    *,
+    is_creator5: bool = False,
+    is_creator5_pro: bool = False,
+):
     """Build machine info reporting the given (slot_id, material, color) slots."""
     machine_info = Mock()
     machine_info.machine_state = Mock(value="ready")
+    machine_info.is_creator5 = is_creator5
+    machine_info.is_creator5_pro = is_creator5_pro
     machine_info.matl_station_info.slot_infos = [
         Mock(
             slot_id=slot_id,
@@ -147,6 +154,29 @@ class TestListFiles:
         assert payload["files"][0]["file_name"] == "benchy.3mf"
         assert payload["has_material_station"] is True
         assert payload["machine_state"] == "ready"
+        assert payload["is_creator5_series"] is False
+
+    @pytest.mark.asyncio
+    async def test_creator5_reports_series_flag(self):
+        """A Creator 5 reports the flag that swaps the card for an info message."""
+        machine_info = make_machine_info(is_creator5=True)
+        hass, _, _ = make_hass(machine_info=machine_info)
+        connection = make_connection()
+
+        await ws_list_files(hass, connection, {"id": 1, "entry_id": ENTRY_ID})
+
+        assert result_of(connection)["is_creator5_series"] is True
+
+    @pytest.mark.asyncio
+    async def test_creator5_pro_reports_series_flag(self):
+        """Creator 5 Pro is part of the same series."""
+        machine_info = make_machine_info(is_creator5_pro=True)
+        hass, _, _ = make_hass(machine_info=machine_info)
+        connection = make_connection()
+
+        await ws_list_files(hass, connection, {"id": 1, "entry_id": ENTRY_ID})
+
+        assert result_of(connection)["is_creator5_series"] is True
 
     @pytest.mark.asyncio
     async def test_unknown_entry_errors(self):

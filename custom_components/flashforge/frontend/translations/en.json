@@ -17,6 +17,7 @@
   "subtitle_other": "{model} · {count} recent files",
   "loading": "Loading files from the printer…",
   "no_files": "The printer reports no files. Send one from your slicer first.",
+  "local_jobs_unavailable_creator5": "Local job management is not available on this printer.",
   "tool_swatch_title": "Tool {tool}: {material}",
   "unknown_lower": "unknown",
   "tools_one": "{count} tool",

@@ -16,7 +16,7 @@
  * to explain the rules while the user clicks, not to be trusted.
  */
 
-const CARD_VERSION = "1.4.0";
+const CARD_VERSION = "1.5.0";
 
 console.info(
   `%c FLASHFORGE-JOB-CARD %c ${CARD_VERSION} `,
@@ -356,7 +356,7 @@ class FlashForgeJobCard extends HTMLElement {
     this._loaded = false;
     this._error = null;
     this._notice = null;
-    this._data = null; // { files, slots, model, printer_name, has_material_station }
+    this._data = null; // { files, slots, model, printer_name, has_material_station, is_creator5_series }
     this._thumbs = {};
     this._selected = null;
     this._leveling = false;
@@ -686,11 +686,12 @@ class FlashForgeJobCard extends HTMLElement {
     const name =
       this._config.title || (this._data && this._data.printer_name) || "FlashForge";
     this._root.querySelector(".title").textContent = name;
-    this._root.querySelector(".subtitle").textContent = this._data
-      ? this._t.plural("subtitle", this._data.files.length, {
-          model: this._data.model,
-        })
-      : "";
+    this._root.querySelector(".subtitle").textContent =
+      this._data && !this._data.is_creator5_series
+        ? this._t.plural("subtitle", this._data.files.length, {
+            model: this._data.model,
+          })
+        : "";
 
     this._renderFiles();
     this._renderFooter();
@@ -703,6 +704,12 @@ class FlashForgeJobCard extends HTMLElement {
 
     if (this._loading && !this._loaded) {
       body.innerHTML = `<div class="message">${esc(this._t("loading"))}</div>`;
+      return;
+    }
+    if (this._data && this._data.is_creator5_series) {
+      body.innerHTML = `<div class="message">${esc(
+        this._t("local_jobs_unavailable_creator5")
+      )}</div>`;
       return;
     }
     if (this._error) {
@@ -780,7 +787,7 @@ class FlashForgeJobCard extends HTMLElement {
 
   _renderFooter() {
     const footer = this._root.getElementById("footer");
-    if (this._error || !this._data || this._data.files.length === 0) {
+    if (this._error || !this._data || this._data.is_creator5_series || this._data.files.length === 0) {
       footer.innerHTML = "";
       return;
     }

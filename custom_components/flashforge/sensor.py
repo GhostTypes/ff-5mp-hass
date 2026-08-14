@@ -34,7 +34,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import FlashForgeDataUpdateCoordinator
-from .util import build_device_info
+from .util import build_device_info, is_creator5_series
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -92,11 +92,6 @@ def _active_ifs_slot(data: FFMachineInfo) -> int | None:
     if station is None:
         return 0
     return getattr(station, "current_slot", 0) or 0
-
-
-def _is_creator5_series(data: FFMachineInfo) -> bool:
-    """Creator 5 / Creator 5 Pro (4-tool tool-changer)."""
-    return bool(getattr(data, "is_creator5", False) or getattr(data, "is_creator5_pro", False))
 
 
 def _has_chamber(data: FFMachineInfo) -> bool:
@@ -383,7 +378,7 @@ TOOLHEAD_SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = tuple(
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:printer-3d-nozzle",
         value_fn=_tool_temp_value(i - 1),
-        availability_fn=_is_creator5_series,
+        availability_fn=is_creator5_series,
     )
     for i in range(1, 5)
 ) + tuple(
@@ -395,7 +390,7 @@ TOOLHEAD_SENSORS: tuple[FlashForgeSensorEntityDescription, ...] = tuple(
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:printer-3d-nozzle",
         value_fn=_tool_temp_value(i - 1, target=True),
-        availability_fn=_is_creator5_series,
+        availability_fn=is_creator5_series,
     )
     for i in range(1, 5)
 )

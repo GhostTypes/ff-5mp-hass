@@ -63,7 +63,7 @@ Treat this file as the living source of truth for workflows and expectations—u
   - Filtration as a `select` entity with Off / Internal / External states (Adventurer 5M Pro / Creator 5 Pro only — gated on `is_pro OR is_creator5_pro`).
   - Pause / resume / cancel / clear-status buttons with post-action refresh.
   - MJPEG camera entity targeting `http://<ip>:8080/?action=stream`.
-  - **Starting local prints** from the job card: the printer's ten most recent files (all models), with per-file metadata and per-tool material data where the model reports it (**AD5X only**), plus the tool-to-slot material matching dialog that model needs. The Creator 5 series reports file names only and therefore always takes the plain confirmation path. Ported from FlashForgeUI-Electron's job picker + material-matching dialog.
+  - **Starting local prints** from the job card: the printer's ten most recent files (5M / 5M Pro / AD5X), with per-file metadata and per-tool material data where the model reports it (**AD5X only**), plus the tool-to-slot material matching dialog that model needs. The **Creator 5 series cannot start a previously-uploaded local job over HTTP (only a fresh 3mf upload+start works), so the card shows the info message "Local job management is not available on this printer." in place of the file list and Start button.** The server-side dispatch (`job.py` → `start_creator5_job`) is unchanged and still works if a client calls it directly — the card is just an untrusted client that no longer offers it. Ported from FlashForgeUI-Electron's job picker + material-matching dialog.
 - **Architecture**
   - HTTP API only (`FlashForgeClient.info/control/job_control`).
   - `DataUpdateCoordinator` refresh loop with error recovery and client cleanup.
@@ -362,7 +362,7 @@ pytest tests/unit/test_sensor_value_functions.py -v
 5a. Add the **FlashForge Print Job** card to a dashboard (card picker → search "FlashForge"), confirm the file list, thumbnails and metadata load, then start a print:
    - single-material file → confirmation dialog only;
    - multi-material file on an **AD5X** → matching dialog with the mapping pre-filled; verify a PLA tool cannot be mapped to a PETG slot, that an empty slot is unselectable, and that a color mismatch warns but still starts.
-   - any file on a **Creator 5 / Creator 5 Pro** → confirmation dialog only, never the matching dialog: `/gcodeList` reports no per-tool data there, so there is nothing to map. The slot swatch entities must still be populated (they come from `/detail`).
+   - **Creator 5 / Creator 5 Pro** → the card shows the info message "Local job management is not available on this printer." and hides the file list and Start button (the firmware cannot start a previously-uploaded local job over HTTP, only a fresh 3mf upload+start). The Material Station slot swatch entities must still be populated (they come from `/detail`).
 6. Observe coordinator error handling by temporarily disconnecting the printer and confirming entities surface availability correctly.
 
 ### Testing Utilities

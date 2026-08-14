@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-14
+
+### Changed
+
+- **The job card no longer offers local prints on the Creator 5 series.** Creator 5 / Creator 5 Pro firmware does not support starting a previously uploaded local job over the HTTP API — only a fresh .3mf upload and start works — so picking a file from the card's list and starting it failed. The card now detects the Creator 5 series by `pid` (the library's `is_creator5` / `is_creator5_pro` flags, never the user-mutable printer name). In place of the file list, the card shows the message **“Local job management is not available on this printer.”** and hides the Start button. Fresh uploads from a slicer are unaffected. The Material Station slot entities (sourced from `/detail`) are unaffected. The card's version changed with this release, so the one-time *reload this page* notification introduced in v1.4.0 appears once more after you update — the reload is what picks up the new card.
+
 ## [1.4.0] - 2026-08-10
 
 ### Added
@@ -293,7 +299,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FlashForge Adventurer 5M Series
 - FlashForge Adventurer 4
 
-[Unreleased]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.4...v1.4.0
 [1.3.4]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/GhostTypes/ff-5mp-hass/compare/v1.3.2...v1.3.3
