@@ -85,7 +85,10 @@ Treat this file as the living source of truth for workflows and expectations—u
 - `switch.py` – LED switch with client capability check (capability check can be overridden via options) and the camera switch. Descriptions carry both an `availability_fn` (greys the entity out; use when the printer may report the feature later) and a `supported_fn` (skips creating it entirely; use when the model's API cannot perform the action at all — the Creator 5 camera switch is inert, so it is never created there).
 - `select.py` – Filtration mode select (Off / Internal / External; availability gated on `is_pro OR is_creator5_pro`, i.e. Adventurer 5M Pro / Creator 5 Pro).
 - `button.py` – Pause / resume / cancel / clear-status commands; request a refresh after each action.
-- `camera.py` – MJPEG camera entity (`http://<ip>:8080/?action=stream` by default).
+- `camera.py` – MJPEG camera entity using the printer-reported URL. Live viewers
+  and snapshots share `camera_stream.py`'s on-demand reader; it retains only the
+  latest frame and releases the upstream on last unsubscribe, source changes,
+  unload, or Home Assistant shutdown.
 - `image.py` – Hosts the active-print g-code thumbnail entity AND the 4 Material Station slot swatch entities (AD5X / Creator 5 series). Swatches are PNG-encoded by `render_swatch_bytes()` (Pillow) inside an executor; both entity types cache rendered bytes and only invalidate on input change.
 - `job.py` – Local print jobs: normalizing `/gcodeList` entries and Material Station slots for the card, the material-matching rules, and the per-model print-start dispatch (Creator 5 → `start_creator5_job`; AD5X → multi- or single-color; 5M → `print_local_file`). **This module is the authority on matching, not the card.**
 - `websocket.py` – The card's backend: `flashforge/entries`, `flashforge/files/list`, `flashforge/file/thumbnail`, `flashforge/job/prepare`, `flashforge/job/start`. `job/start` re-fetches the file list and re-reads the live slots, re-deriving every material name and color rather than trusting the client's payload.

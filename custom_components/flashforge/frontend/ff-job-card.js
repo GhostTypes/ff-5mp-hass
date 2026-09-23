@@ -16,7 +16,7 @@
  * to explain the rules while the user clicks, not to be trusted.
  */
 
-const CARD_VERSION = "1.5.0";
+const CARD_VERSION = "1.5.1b1";
 
 console.info(
   `%c FLASHFORGE-JOB-CARD %c ${CARD_VERSION} `,

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1b1] - 2026-09-23
+
+### Fixed
+
+- Share one on-demand camera connection across live previews and snapshots. Opening
+  a second Home Assistant tab no longer opens a competing MJPEG connection to the
+  printer. Keep only the latest frame, retry interrupted streams, and close the
+  reader when there are no viewers or the integration unloads. External apps that
+  connect directly to the printer are outside this sharing boundary.
+
 ## [1.5.0] - 2026-08-14
 
 ### Changed
