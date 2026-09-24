@@ -156,9 +156,10 @@ async def ws_list_files(
             "files": files,
             "slots": slots,
             "has_material_station": bool(slots),
-            # The Creator 5 series cannot start a previously-uploaded local job
-            # over the HTTP API (only a fresh 3mf upload+start works), so the
-            # card shows an info message in place of the file list / Start button.
+            # The Creator 5 series can start a stored file, but it does not report
+            # which tools the file uses, so no correct material mappings can be
+            # built for it. The card shows an info message in place of the file
+            # list / Start button.
             "is_creator5_series": is_creator5_series(coordinator.data),
             # Advisory only - the printer is the one that refuses a print while
             # it is busy, and it is better at knowing than we are.
