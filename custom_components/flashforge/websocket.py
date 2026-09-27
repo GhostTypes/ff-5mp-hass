@@ -1,7 +1,8 @@
 """WebSocket API backing the FlashForge job card.
 
 The card is a plain custom element with no state of its own; everything it shows
-comes from these four commands, and every action it takes goes back through them.
+comes from these commands and the upload endpoint, and every action it takes
+goes back through them.
 Commands rather than entities because a file list is a *request*, not a state: it
 is only interesting while the card is open, it carries per-file metadata far too
 large for entity attributes, and thumbnails are not expressible as state at all.

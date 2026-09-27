@@ -331,12 +331,18 @@ async def async_discard(hass: HomeAssistant, store: UploadStore, upload_id: str)
 
 
 def _expire(hass: HomeAssistant, store: UploadStore, upload_id: str) -> None:
-    """TTL callback. A file being sent right now is left alone: the start
-    command deletes it when the send ends, and a failed send leaves it for the
-    next sweep."""
+    """TTL callback. A file being sent right now is left alone and checked
+    again in a minute: the start command deletes it when the send succeeds, and
+    a failed send leaves it for this timer."""
     staged = store._staged.get(upload_id)
-    if staged is not None and not staged.in_progress:
-        hass.async_create_task(async_discard(hass, store, upload_id))
+    if staged is None:
+        return
+    if staged.in_progress:
+        staged.expiry = asyncio.get_running_loop().call_later(
+            60, _expire, hass, store, upload_id
+        )
+        return
+    hass.async_create_task(async_discard(hass, store, upload_id))
 
 
 async def async_sweep(hass: HomeAssistant, store: UploadStore) -> None:

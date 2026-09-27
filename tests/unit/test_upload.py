@@ -837,7 +837,7 @@ async def test_view_hides_unexpected_errors():
     assert response.body["message"] == "The upload failed."
 
 
-def test_ttl_expiry_skips_an_upload_being_sent(tmp_path):
+async def test_ttl_expiry_skips_an_upload_being_sent(tmp_path):
     hass = make_hass()
     store = UploadStore(tmp_path)
     staged = upload.StagedUpload("u1", ENTRY_ID, tmp_path / "a.3mf", Mock(), {})
@@ -847,6 +847,8 @@ def test_ttl_expiry_skips_an_upload_being_sent(tmp_path):
     upload._expire(hass, store, "u1")
 
     hass.async_create_task.assert_not_called()
+    assert staged.expiry is not None  # re-armed
+    staged.expiry.cancel()
     staged.in_progress = False
     upload._expire(hass, store, "u1")
     hass.async_create_task.assert_called_once()
