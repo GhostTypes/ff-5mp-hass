@@ -330,6 +330,15 @@ async def async_discard(hass: HomeAssistant, store: UploadStore, upload_id: str)
         await hass.async_add_executor_job(_remove_tree, staged.path.parent)
 
 
+def _expire(hass: HomeAssistant, store: UploadStore, upload_id: str) -> None:
+    """TTL callback. A file being sent right now is left alone: the start
+    command deletes it when the send ends, and a failed send leaves it for the
+    next sweep."""
+    staged = store._staged.get(upload_id)
+    if staged is not None and not staged.in_progress:
+        hass.async_create_task(async_discard(hass, store, upload_id))
+
+
 async def async_sweep(hass: HomeAssistant, store: UploadStore) -> None:
     """Delete every staged upload past its TTL."""
     for upload_id in store.expired():
@@ -421,8 +430,7 @@ async def async_stage_upload(
     )
     store.add(staged)
     staged.expiry = asyncio.get_running_loop().call_later(
-        STAGE_TTL_SECONDS,
-        lambda: hass.async_create_task(async_discard(hass, store, upload_id)),
+        STAGE_TTL_SECONDS, _expire, hass, store, upload_id
     )
     _LOGGER.debug(
         "Staged %s for %s (%d bytes, %d tools, plan=%s)",
