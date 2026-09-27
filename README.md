@@ -66,7 +66,7 @@
   </tr>
   <tr>
     <td>Print Job Card</td>
-    <td>Browse the files on the printer, match each tool to a Material Station slot (AD5X), and start the print — a dashboard card installed with the integration</td>
+    <td>Start a file from the printer's list, or upload a sliced 3MF. Match each tool to a Material Station slot (AD5X / Creator 5 series), then start the print. The card installs with the integration.</td>
   </tr>
   <tr>
     <td rowspan="4"><b>Architecture</b></td>
@@ -143,7 +143,7 @@
 | Requirement | Details |
 |-------------|---------|
 | **Home Assistant** | 2025.1.0 or newer |
-| **Python Library** | [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.2.0+ |
+| **Python Library** | [flashforge-python-api](https://pypi.org/project/flashforge-python-api/) 1.6.0+ (Home Assistant installs it for you) |
 | **Network** | Local LAN connectivity to printer |
 | **Printer Setup** | LAN mode enabled with serial number and check code |
 
@@ -306,14 +306,20 @@
   <h2>Starting Prints — the Job Card</h2>
 </div>
 
-The integration ships a dashboard card for starting prints of files already on the printer, including the **material matching** step the AD5X needs for multi-material files.
+The integration ships a dashboard card that starts prints. You can start a file that is already on the printer, or upload a sliced 3MF from your computer. The card includes the **material matching** step that multi-material files need. Material matching means you choose which Material Station slot feeds each tool in the file.
+
+| Printer | Files on the printer | Upload a 3MF |
+|---------|----------------------|--------------|
+| **AD5X** | ✅ with matching | ✅ with matching (with a Material Station) |
+| **Adventurer 5M / 5M Pro** | ✅ confirmation only | ✅ confirmation only |
+| **Creator 5 / Creator 5 Pro** | — (no file list) | ✅ with matching |
 
 **Adding it:** the card is installed and registered with the integration — there is no separate HACS entry and no Lovelace resource to add. Edit a dashboard → **Add card** → search for **FlashForge Print Job** → pick your printer.
 
 > [!NOTE]
 > **After installing or updating, reload the page once.** A browser tab loads the list of frontend modules when the page opens, so a tab that was already open before the install does not know the card exists yet — the picker will not offer it. The integration tells you when this applies: you will get a **notification in the sidebar** saying the card is ready. Press <kbd>Ctrl</kbd>+<kbd>R</kbd> (<kbd>Cmd</kbd>+<kbd>R</kbd> on a Mac) and it will be there. You will not be asked again until the next update.
 
-**Using it:**
+**Starting a file from the printer (AD5X, 5M, 5M Pro):**
 
 1. Pick a file. Each row shows its thumbnail, print time, filament weight and per-tool material swatches, where the printer reports them.
 2. Optionally tick **Level the bed before printing**.
@@ -321,7 +327,46 @@ The integration ships a dashboard card for starting prints of files already on t
    - **Single-material file, or a printer with no Material Station** — a confirmation dialog, then the print starts.
    - **Material Station file (AD5X)** — the matching dialog opens. Every tool in the file must be mapped to a loaded slot before the print can start. A sensible mapping is pre-filled for you; review it and press **Start print**, or click a tool and then the slot you want it to come from to change it.
 
-**The matching rules**, identical to the FlashForge desktop app:
+**Uploading a 3MF (all models):**
+
+1. Slice your model and export the sliced plate as a `.3mf` file.
+2. Optionally tick **Level the bed before printing**.
+3. Press **Upload 3MF**.
+4. Choose the file. A progress bar shows the upload. Home Assistant then reads the tools and materials from the file.
+5. Review the dialog that opens.
+   - **Creator 5 / Creator 5 Pro, or an AD5X with a Material Station** — the matching dialog opens, with a mapping pre-filled from the file's materials. Every tool must be mapped to a loaded slot.
+   - **Adventurer 5M / 5M Pro, or an AD5X without a Material Station** — a confirmation dialog opens. There is no matching step.
+6. Press **Start print**. The card sends the file to the printer, and the print starts.
+
+On the Creator 5 series the card shows no file list, so the upload is the only way to print from the card. The card says so: *"This printer can only print files you upload."* On the other models, the uploaded file also appears at the top of the printer's file list after the print starts.
+
+> [!WARNING]
+> **The upload is new in 1.6.0 and not yet tested on real hardware.** Watch the first print you start this way, and [open an issue](https://github.com/GhostTypes/ff-5mp-hass/issues) if something goes wrong.
+
+**Files the upload refuses** — the card shows a message that says why:
+
+| File | What to do |
+|------|------------|
+| The name does not end in `.3mf` | Export a sliced 3MF from your slicer |
+| The file is empty, or larger than 500 MB | Check the export, or reduce the file size |
+| The file is not a valid 3MF archive | Export the file again |
+| A project 3MF with no sliced G-code | Slice the plate, then export the sliced plate, not the project |
+| A 3MF with more than one sliced plate | Export a single plate |
+| The file uses filament 5 or higher (Material Station printers) | Re-slice with filaments 1 to 4 — the station has four slots |
+| The file has no filament data (Material Station printers) | Re-slice and export the sliced plate again |
+| The Creator 5 does not report its Material Station | Check the station, then try again |
+
+The card also shows **warnings** that do not block the print. It warns when the file was sliced for a different printer model, and it shows the slicer's own warnings from the file.
+
+**Good to know about uploads:**
+
+- Any logged-in Home Assistant user can upload and start a file, the same as for starting a file from the list.
+- The integration does not send an uploaded file while the printer is printing, pausing, paused, heating, calibrating, or busy. Wait until the printer is idle, then press **Start print** again.
+- Home Assistant keeps an uploaded file in a temporary folder only until you use it. The file is deleted after the print starts, when you close the dialog, or after 30 minutes.
+- If the send to the printer fails, the file stays, so you can press **Start print** again.
+- At most 8 uploads can wait at the same time, across all printers.
+
+**The matching rules**, identical to the FlashForge desktop app, apply to both paths:
 
 | Situation | Result |
 |-----------|--------|
@@ -331,12 +376,12 @@ The integration ships a dashboard card for starting prints of files already on t
 | A tool is left unmapped | **Start print** stays disabled |
 
 > [!NOTE]
-> **Only the ten most recent files are listed, on every model.** That is what the printer's HTTP API offers; the full local file listing exists only over the legacy TCP channel this integration deliberately does not speak. Send a file from your slicer and it will appear at the top of the list.
+> **The file list shows only the ten most recent files (AD5X, 5M, 5M Pro).** That is what the printer's HTTP API offers; the full local file listing exists only over the legacy TCP channel this integration deliberately does not speak. Send a file from your slicer, or upload one from the card, and it will appear at the top of the list.
 
 > [!NOTE]
-> **Per-file metadata (print time, filament weight, per-tool materials) is reported by the AD5X only.** The 5M / 5M Pro and the **Creator 5 / Creator 5 Pro** report file names only, so those rows show a name and start without a matching step.
+> **Per-file metadata (print time, filament weight, per-tool materials) is reported by the AD5X only.** The 5M / 5M Pro report file names only, so those rows show a name and start without a matching step.
 >
-> On the Creator 5 series this is a firmware limitation, not an omission here: its `/gcodeList` response carries no per-file detail at all, so there is nothing to build a matching dialog from. The Material Station slot entities still work — those come from a different endpoint — and matching still applies when you send a multi-material file from your slicer, because the printer does the matching itself at upload time.
+> **Why the Creator 5 series has no file list:** its firmware does not report which tools a stored file uses. Without that, the card cannot match tools to slots. If a print started without a mapping, each tool would print from the slot with the slicer's filament number, whatever is loaded there. An upload solves this: Home Assistant reads the tools from the 3MF itself before the file reaches the printer. The Material Station slot entities still work, because they come from a different endpoint.
 
 <div align="center">
   <h2>Languages</h2>
@@ -487,6 +532,7 @@ entities:
 | **Entities Show "Unavailable"** | Integration installed but entities are unavailable | • Check printer is online and reachable<br>• Verify credentials are still valid<br>• Reload the integration: Settings → Integrations → FlashForge → ⋮ → Reload<br>• Check Home Assistant logs for connection errors |
 | **Camera Entity Unavailable** | The camera entity shows unavailable | • The camera entity is always created, but it only becomes available when the printer reports an active OEM camera stream URL or the standard OEM fallback stream endpoint responds<br>• Verify the OEM camera is installed and enabled on the printer<br>• The `switch.flashforge_camera` power control remains Pro-only |
 | **Remaining / Completion Time Missing or Wrong** | `sensor.flashforge_remaining_time` stays at `0` and `sensor.flashforge_print_completion_time` stays `unknown` during an active print | • FlashForge firmware only calculates an ETA when the sliced file carries its own print-time metadata, which is written by FlashForge's OrcaSlicer fork and FlashPrint but **not** by regular OrcaSlicer or similar slicers<br>• Without it the printer reports `estimatedTime: 0` over the API, so there is no accurate value for the integration to display<br>• The printer's own screen still shows a time because it reads the file directly — that isn't exposed over the HTTP API<br>• Fix: run [orca2flashforge](https://github.com/GhostTypes/orca2flashforge) as a post-processing script in your slicer to add the metadata FlashForge firmware expects |
+| **3MF Upload Refused** | The job card shows an error after you choose a file | • Read the message: it names the problem<br>• Export the **sliced plate**, not the project file — a project 3MF has no G-code<br>• Export one plate per file<br>• On a Material Station printer, re-slice with filaments 1 to 4<br>• Files larger than 500 MB are refused |
 | **Python API Not Installing** | Integration fails due to missing flashforge-python-api | • Verify Home Assistant has internet access<br>• Check PyPI is reachable: https://pypi.org/project/flashforge-python-api/<br>• Try manual install: `pip install flashforge-python-api` in HA environment<br>• Restart Home Assistant after installation |
 | **Static IP Recommended** | - | For best reliability, assign a static IP address to your printer in your router's DHCP settings. This prevents connection issues if the printer's IP changes. |
 
