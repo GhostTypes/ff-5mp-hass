@@ -3,7 +3,10 @@
  *
  * A port of the FlashForgeUI job picker and its material-matching dialog:
  * browse the files on the printer, pick one, map each of its tools to a
- * Material Station slot, and start the print.
+ * Material Station slot, and start the print. Or upload a sliced 3MF: the
+ * integration reads its tools from the file, and the same dialog maps them.
+ * The upload is the only way to print on the Creator 5 series, whose firmware
+ * does not report the tools of a stored file.
  *
  * Vanilla custom element on purpose - no build step, no bundler, no runtime
  * dependency on Home Assistant frontend internals. The file committed to the
@@ -16,7 +19,7 @@
  * to explain the rules while the user clicks, not to be trusted.
  */
 
-const CARD_VERSION = "1.5.0";
+const CARD_VERSION = "1.6.0";
 
 console.info(
   `%c FLASHFORGE-JOB-CARD %c ${CARD_VERSION} `,
@@ -66,6 +69,10 @@ function esc(value) {
       })[char]
   );
 }
+
+/** Must match MAX_UPLOAD_BYTES in upload.py; checked here only to fail fast. */
+const MAX_UPLOAD_MB = 500;
+const UPLOAD_URL = "/api/flashforge/upload";
 
 /** A CSS color for a swatch, falling back to a muted tile when unknown. */
 function swatchColor(hex) {
@@ -333,6 +340,13 @@ const STYLES = `
 
   .summary { display: flex; gap: 14px; align-items: center; margin-bottom: 4px; }
   .summary .thumb { width: 76px; height: 76px; flex-basis: 76px; }
+
+  .footer-actions { display: flex; gap: 8px; margin-left: auto; }
+  .progress {
+    height: 8px; border-radius: 4px; background: var(--secondary-background-color);
+    overflow: hidden; margin: 12px 0 6px;
+  }
+  .progress-bar { height: 100%; background: var(--primary-color); transition: width 0.2s; }
 `;
 
 /* ------------------------------------------------------------------ */
@@ -360,7 +374,7 @@ class FlashForgeJobCard extends HTMLElement {
     this._thumbs = {};
     this._selected = null;
     this._leveling = false;
-    this._dialog = null; // matching / confirm dialog state
+    this._dialog = null; // matching / confirm / uploading dialog state
     this._starting = false;
     this._language = null;
     this._t = pendingTranslator();
@@ -523,9 +537,139 @@ class FlashForgeJobCard extends HTMLElement {
   }
 
   _closeDialog() {
+    const dialog = this._dialog;
+    if (dialog && dialog.source === "upload") {
+      // An upload in flight is aborted; a staged one is deleted server-side
+      // rather than left for the TTL. Both are best effort.
+      if (dialog.xhr) dialog.xhr.abort();
+      if (dialog.uploadId && !dialog.started) {
+        this._send({ type: "flashforge/upload/discard", upload_id: dialog.uploadId }).catch(
+          () => {}
+        );
+      }
+    }
     this._dialog = null;
     this._starting = false;
     this._render();
+  }
+
+  /* -- upload ------------------------------------------------------ */
+
+  _onUploadClicked() {
+    const input = this._root.getElementById("file-input");
+    if (input) input.click();
+  }
+
+  async _onFileChosen(file) {
+    if (!file) return;
+    this._notice = null;
+
+    if (!/\.3mf$/i.test(file.name)) {
+      this._notice = { type: "error", text: this._t("err_not_3mf") };
+      this._render();
+      return;
+    }
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      this._notice = { type: "error", text: this._t("err_too_large", { size: MAX_UPLOAD_MB }) };
+      this._render();
+      return;
+    }
+
+    const dialog = {
+      mode: "uploading",
+      source: "upload",
+      fileName: file.name,
+      progress: 0,
+      xhr: null,
+      error: null,
+      warning: null,
+    };
+    this._dialog = dialog;
+    this._render();
+
+    let payload;
+    try {
+      payload = await this._postUpload(file, dialog);
+    } catch (err) {
+      if (this._dialog !== dialog) return; // closed while uploading
+      dialog.xhr = null;
+      dialog.error = err.message || this._t("err_upload");
+      this._render();
+      return;
+    }
+
+    if (this._dialog !== dialog) {
+      // Closed after the bytes were sent but before the answer: nobody will
+      // start this one, so do not wait for the TTL.
+      this._send({ type: "flashforge/upload/discard", upload_id: payload.upload_id }).catch(
+        () => {}
+      );
+      return;
+    }
+
+    const mappings = new Map();
+    for (const mapping of payload.suggested_mappings || []) {
+      mappings.set(mapping.tool_id, mapping);
+    }
+    const notes = [];
+    if (payload.model_mismatch) {
+      notes.push(this._t("warn_model_mismatch", { model: payload.model_mismatch }));
+    }
+    // Slicer warnings arrive as the slicer's own English text.
+    notes.push(...(payload.slicer_warnings || []));
+
+    this._dialog = {
+      mode: payload.requires_matching ? "match" : "confirm",
+      source: "upload",
+      uploadId: payload.upload_id,
+      file: payload.file,
+      slots: payload.slots,
+      thumb: payload.thumbnail,
+      notes,
+      mappings,
+      selectedTool: null,
+      error: null,
+      warning: null,
+    };
+    this._render();
+  }
+
+  /**
+   * POST the file with XMLHttpRequest rather than fetch: only XHR reports
+   * upload progress, and a large 3MF takes long enough that a silent spinner
+   * reads as a hang. The token comes from the frontend's own auth object.
+   */
+  async _postUpload(file, dialog) {
+    const auth = this._hass && this._hass.auth;
+    if (!auth) throw new Error(this._t("err_not_ready"));
+    if (auth.expired) await auth.refreshAccessToken();
+
+    const form = new FormData();
+    // The server reads entry_id before the file, so it must come first.
+    form.append("entry_id", this._config.entry_id);
+    form.append("file", file, file.name);
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      dialog.xhr = xhr;
+      xhr.open("POST", UPLOAD_URL);
+      xhr.setRequestHeader("Authorization", `Bearer ${auth.data.access_token}`);
+      xhr.responseType = "json";
+      xhr.upload.addEventListener("progress", (event) => {
+        if (!event.lengthComputable || this._dialog !== dialog) return;
+        dialog.progress = Math.round((event.loaded / event.total) * 100);
+        this._renderModal();
+      });
+      xhr.addEventListener("load", () => {
+        dialog.xhr = null;
+        const body = xhr.response || {};
+        if (xhr.status === 200) resolve(body);
+        else reject(new Error(body.message || this._t("err_upload")));
+      });
+      xhr.addEventListener("error", () => reject(new Error(this._t("err_upload"))));
+      xhr.addEventListener("abort", () => reject(new Error(this._t("err_upload"))));
+      xhr.send(form);
+    });
   }
 
   _onToolClicked(toolId) {
@@ -614,12 +758,21 @@ class FlashForgeJobCard extends HTMLElement {
     this._render();
 
     try {
-      const result = await this._send({
-        type: "flashforge/job/start",
-        file_name: dialog.file.file_name,
-        leveling: this._leveling,
-        material_mappings: [...dialog.mappings.values()],
-      });
+      const result =
+        dialog.source === "upload"
+          ? await this._send({
+              type: "flashforge/upload/start",
+              upload_id: dialog.uploadId,
+              leveling: this._leveling,
+              material_mappings: [...dialog.mappings.values()],
+            })
+          : await this._send({
+              type: "flashforge/job/start",
+              file_name: dialog.file.file_name,
+              leveling: this._leveling,
+              material_mappings: [...dialog.mappings.values()],
+            });
+      dialog.started = true;
       this._dialog = null;
       this._starting = false;
       // The warnings themselves come from the integration, which does not know
@@ -632,6 +785,8 @@ class FlashForgeJobCard extends HTMLElement {
           (warnings.length ? ` ${warnings.join(" ")}` : ""),
       };
       this._render();
+      // An uploaded file is now among the printer's recent files.
+      if (dialog.source === "upload" && !this._data.is_creator5_series) this._loadFiles();
     } catch (err) {
       this._starting = false;
       dialog.error = err.message || this._t("err_start");
@@ -658,7 +813,16 @@ class FlashForgeJobCard extends HTMLElement {
         <div class="footer" id="footer"></div>
       </ha-card>
       <div id="modal-host"></div>
+      <input type="file" id="file-input" accept=".3mf" class="hidden">
     `;
+
+    const input = this._root.getElementById("file-input");
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      // Reset so choosing the same file again still fires "change".
+      input.value = "";
+      this._onFileChosen(file);
+    });
 
     this._root.getElementById("refresh").addEventListener("click", () => {
       this._thumbs = {};
@@ -708,7 +872,7 @@ class FlashForgeJobCard extends HTMLElement {
     }
     if (this._data && this._data.is_creator5_series) {
       body.innerHTML = `<div class="message">${esc(
-        this._t("local_jobs_unavailable_creator5")
+        this._t("creator5_upload_only")
       )}</div>`;
       return;
     }
@@ -787,10 +951,13 @@ class FlashForgeJobCard extends HTMLElement {
 
   _renderFooter() {
     const footer = this._root.getElementById("footer");
-    if (this._error || !this._data || this._data.is_creator5_series || this._data.files.length === 0) {
+    if (this._error || !this._data) {
       footer.innerHTML = "";
       return;
     }
+
+    // The Creator 5 series gets no file list, so the upload is its only action.
+    const canPickFiles = !this._data.is_creator5_series && this._data.files.length > 0;
 
     footer.innerHTML = `
       ${
@@ -804,9 +971,21 @@ class FlashForgeJobCard extends HTMLElement {
         <input type="checkbox" id="leveling" ${this._leveling ? "checked" : ""}>
         ${esc(this._t("leveling"))}
       </label>
-      <button class="primary" id="start" ${this._selected ? "" : "disabled"}>
-        ${esc(this._t("start"))}
-      </button>`;
+      <div class="footer-actions">
+        <button class="${canPickFiles ? "secondary" : "primary"}" id="upload">
+          ${esc(this._t("upload_3mf"))}
+        </button>
+        ${
+          canPickFiles
+            ? `<button class="primary" id="start" ${this._selected ? "" : "disabled"}>
+                ${esc(this._t("start"))}
+              </button>`
+            : ""
+        }
+      </div>`;
+
+    const upload = this._root.getElementById("upload");
+    if (upload) upload.addEventListener("click", () => this._onUploadClicked());
 
     const leveling = this._root.getElementById("leveling");
     if (leveling) {
@@ -824,14 +1003,57 @@ class FlashForgeJobCard extends HTMLElement {
       host.innerHTML = "";
       return;
     }
+    const mode = this._dialog.mode;
     host.innerHTML =
-      this._dialog.mode === "match" ? this._matchingHtml() : this._confirmHtml();
+      mode === "uploading"
+        ? this._uploadingHtml()
+        : mode === "match"
+          ? this._matchingHtml()
+          : this._confirmHtml();
     this._wireModal(host);
+  }
+
+  _uploadingHtml() {
+    const dialog = this._dialog;
+    const done = dialog.progress >= 100;
+    return `
+      <div class="backdrop">
+        <div class="modal">
+          <div class="modal-header">
+            <div class="modal-title" title="${esc(dialog.fileName)}">${esc(
+              this._t("uploading_title", { file: dialog.fileName })
+            )}</div>
+            <button class="icon-button" data-action="close">&#x2715;</button>
+          </div>
+          <div class="modal-body">
+            ${
+              dialog.error
+                ? ""
+                : `<div class="progress"><div class="progress-bar" style="width:${dialog.progress}%"></div></div>
+                   <div class="item-detail">${esc(
+                     done
+                       ? this._t("upload_processing")
+                       : this._t("upload_progress", { percent: dialog.progress })
+                   )}</div>`
+            }
+            ${this._alertsHtml()}
+          </div>
+          <div class="modal-footer">
+            <button class="secondary" data-action="close">${esc(this._t("cancel"))}</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  /** The Start button's label: sending an upload takes long enough to say so. */
+  _startLabel() {
+    if (!this._starting) return this._t("start");
+    return this._t(this._dialog && this._dialog.source === "upload" ? "sending" : "starting");
   }
 
   _confirmHtml() {
     const file = this._dialog.file;
-    const thumb = this._thumbs[file.file_name];
+    const thumb = this._dialog.thumb || this._thumbs[file.file_name];
     const bits = [formatDuration(file.printing_time), formatWeight(file.total_filament_weight)]
       .filter(Boolean)
       .join(" · ");
@@ -870,7 +1092,7 @@ class FlashForgeJobCard extends HTMLElement {
           <div class="modal-footer">
             <button class="secondary" data-action="close">${esc(this._t("cancel"))}</button>
             <button class="primary" data-action="start" ${this._starting ? "disabled" : ""}>
-              ${esc(this._t(this._starting ? "starting" : "start"))}
+              ${esc(this._startLabel())}
             </button>
           </div>
         </div>
@@ -1001,7 +1223,7 @@ class FlashForgeJobCard extends HTMLElement {
             <button class="secondary" data-action="close">${esc(this._t("cancel"))}</button>
             <button class="primary" data-action="start" ${
               allMapped && !this._starting ? "" : "disabled"
-            }>${esc(this._t(this._starting ? "starting" : "start"))}</button>
+            }>${esc(this._startLabel())}</button>
           </div>
         </div>
       </div>`;
@@ -1010,6 +1232,9 @@ class FlashForgeJobCard extends HTMLElement {
   _alertsHtml() {
     const dialog = this._dialog;
     return `
+      ${(dialog.notes || [])
+        .map((note) => `<div class="alert warning">${esc(note)}</div>`)
+        .join("")}
       ${dialog.error ? `<div class="alert error">${esc(dialog.error)}</div>` : ""}
       ${dialog.warning ? `<div class="alert warning">${esc(dialog.warning)}</div>` : ""}`;
   }
@@ -1216,7 +1441,7 @@ window.customCards.push({
   type: "flashforge-job-card",
   name: "FlashForge Print Job",
   description:
-    "Browse the files on a FlashForge printer, match materials to the Material Station, and start a print.",
+    "Browse the files on a FlashForge printer or upload a sliced 3MF, match materials to the Material Station, and start a print.",
   preview: false,
   documentationURL: "https://github.com/GhostTypes/ff-5mp-hass",
 });
