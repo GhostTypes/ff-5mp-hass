@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.5.1b1] - 2026-09-23
+## [1.6.1] - 2026-09-27
 
 ### Fixed
 
@@ -16,6 +16,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   printer. Keep only the latest frame, retry interrupted streams, and close the
   reader when there are no viewers or the integration unloads. External apps that
   connect directly to the printer are outside this sharing boundary.
+
+## [1.6.0] - 2026-09-27
+
+This release lets you upload a sliced 3MF from the job card and print it. On the Creator 5 series, this is the new way to start a print from Home Assistant, with material matching. Update the integration and reload the dashboard page once. You don't need to change any settings.
+
+> **Not yet tested on real hardware.** The unit tests cover the upload path. A Creator 5 owner will test it on a real printer.
+
+### Added
+
+- **Upload a sliced 3MF from the job card.** The card has a new **Upload 3MF** button. Pick a sliced `.3mf` file on your computer. The card shows the upload progress. Home Assistant then reads the file's tools and materials. It opens the same matching or confirmation dialog that files from the printer's list use. Press **Start print** to send the file to the printer and start it. The **Level the bed before printing** checkbox applies to uploads too. Any logged-in Home Assistant user can upload, the same as for starting a print from the list.
+
+- **Material matching for uploads, per printer model.** The integration sends the file the same way FlashForgeUI does:
+  - **Creator 5 / Creator 5 Pro** — you match every tool in the file to a Material Station slot. The integration uploads the file, then starts it with your mapping.
+  - **AD5X with a Material Station** — you match every tool to a slot. The printer starts the file when the upload is complete.
+  - **AD5X without a Material Station, and 5M / 5M Pro** — a confirmation dialog, then the upload starts the print. There is no matching step.
+
+  The mapping is pre-filled from the materials in the file and the filament in each slot. The matching rules are the same as for files from the printer's list.
+
+- **Clear messages for files that cannot print.** The card refuses these files and says why:
+  - a file name that does not end in `.3mf`
+  - an empty file, or a file larger than 500 MB
+  - a file that is not a valid 3MF archive
+  - a project 3MF with no sliced G-code (export the sliced plate instead)
+  - a 3MF with more than one sliced plate (export a single plate instead)
+  - on a Material Station printer, a file that uses filament 5 or higher, or a file with no filament data
+  - on a Creator 5, a printer that does not report its Material Station
+
+  The card also warns you, but still lets you start, when the file was sliced for a different printer model. The slicer's own warnings from the file show in the dialog too.
+
+- **An HTTP endpoint and two websocket commands for the upload.** `POST /api/flashforge/upload` receives the file. It needs a Home Assistant login. `flashforge/upload/start` sends the file to the printer. `flashforge/upload/discard` deletes a file you closed without printing. `upload/start` checks your mapping again against the live Material Station report, with the same rules as `job/start`. It refuses to send a file while the printer is printing, pausing, paused, heating, calibrating, or busy.
+
+### Changed
+
+- **The Creator 5 series can print from the job card again.** The card still shows no file list on these printers, because the firmware does not report which tools a stored file uses. In its place the card now shows **"This printer can only print files you upload. Upload a sliced 3MF to match its materials and start it."** This replaces the old message, "Local job management is not available on this printer." On all other models, the **Upload 3MF** button sits next to **Start print**. The list of the printer's ten most recent files does not change.
+
+- **Uploaded files are temporary.** Home Assistant keeps an uploaded file in a temporary folder only until you use it. It deletes the file after the print starts, when you close the dialog, or after 30 minutes. If you cancel during the upload, the partial file is deleted at once. If the send to the printer fails, the file stays, so you can press **Start print** again. At most 8 uploads can wait at the same time. Leftover files from an earlier run are deleted on the first upload after a restart.
+
+- **Requires `flashforge-python-api` 1.6.0** (was 1.3.5). Version 1.6.0 adds the 3MF reader this feature uses. It also stops large uploads from failing after five minutes on slow Wi-Fi, and it opens files without blocking Home Assistant.
+
+- **The card's version changed with this release.** The one-time *reload this page* notification appears again after you update. Reload the page to get the new card.
 
 ## [1.5.0] - 2026-08-14
 

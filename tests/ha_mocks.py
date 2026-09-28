@@ -295,6 +295,14 @@ class SelectEntityDescription(_BaseEntityDescription):
     options: list[str] | None = None
 
 
+@dataclass
+class MockJsonResponse:
+    """What the HomeAssistantView stub's json helpers return."""
+
+    body: Any
+    status: int = 200
+
+
 def mock_homeassistant():
     """Mock all Home Assistant modules required for unit testing.
 
@@ -468,8 +476,26 @@ def mock_homeassistant():
         path: str
         cache_headers: bool = True
 
+    class HomeAssistantView:
+        """Stub for homeassistant.components.http.HomeAssistantView.
+
+        The real json helpers build aiohttp responses; these return plain
+        objects so tests can read the status and the payload.
+        """
+
+        url: str | None = None
+        name: str | None = None
+        requires_auth = True
+
+        def json(self, result, status_code=200):
+            return MockJsonResponse(result, status_code)
+
+        def json_message(self, message, status_code=200):
+            return MockJsonResponse({"message": message}, status_code)
+
     http_module = MagicMock()
     http_module.StaticPathConfig = StaticPathConfig
+    http_module.HomeAssistantView = HomeAssistantView
     sys.modules["homeassistant.components.http"] = http_module
 
     websocket_api_module = MagicMock()

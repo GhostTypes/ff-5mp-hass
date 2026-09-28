@@ -1,7 +1,8 @@
 """WebSocket API backing the FlashForge job card.
 
 The card is a plain custom element with no state of its own; everything it shows
-comes from these four commands, and every action it takes goes back through them.
+comes from these commands and the upload endpoint, and every action it takes
+goes back through them.
 Commands rather than entities because a file list is a *request*, not a state: it
 is only interesting while the card is open, it carries per-file metadata far too
 large for entity attributes, and thumbnails are not expressible as state at all.
@@ -10,6 +11,12 @@ large for entity attributes, and thumbnails are not expressible as state at all.
     flashforge/file/thumbnail  one file's thumbnail, base64 PNG
     flashforge/job/prepare     what starting this file would involve
     flashforge/job/start       start it
+    flashforge/upload/start    send an uploaded 3MF to the printer and start it
+    flashforge/upload/discard  delete an uploaded 3MF the user closed
+
+The upload itself is an HTTP POST to ``/api/flashforge/upload`` (see
+upload.py), because a websocket message is the wrong carrier for a file of
+hundreds of megabytes.
 
 Note that `job/prepare` is advisory: it returns a *suggested* mapping for the
 card to pre-fill so the common case is one click, but `job/start` re-validates
@@ -39,6 +46,7 @@ from .job import (
     slots_to_list,
     validate_mappings,
 )
+from .upload import FlashForgeUploadView, ws_upload_discard, ws_upload_start
 from .util import is_creator5_series
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,6 +86,9 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_file_thumbnail)
     websocket_api.async_register_command(hass, ws_prepare_job)
     websocket_api.async_register_command(hass, ws_start_job)
+    websocket_api.async_register_command(hass, ws_upload_start)
+    websocket_api.async_register_command(hass, ws_upload_discard)
+    hass.http.register_view(FlashForgeUploadView(hass))
 
 
 def _entry_data(hass: HomeAssistant, entry_id: str) -> dict[str, Any] | None:
@@ -156,9 +167,10 @@ async def ws_list_files(
             "files": files,
             "slots": slots,
             "has_material_station": bool(slots),
-            # The Creator 5 series cannot start a previously-uploaded local job
-            # over the HTTP API (only a fresh 3mf upload+start works), so the
-            # card shows an info message in place of the file list / Start button.
+            # The Creator 5 series can start a stored file, but it does not report
+            # which tools the file uses, so no correct material mappings can be
+            # built for it. The card offers only the 3MF upload there, where the
+            # tools are read from the file itself.
             "is_creator5_series": is_creator5_series(coordinator.data),
             # Advisory only - the printer is the one that refuses a print while
             # it is busy, and it is better at knowing than we are.
