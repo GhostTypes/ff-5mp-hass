@@ -300,6 +300,12 @@
 
 </div>
 
+Live previews and snapshots in this Home Assistant instance share one connection
+to the printer. Multiple tabs can watch together without competing for the OEM
+camera stream. The connection closes when the last viewer leaves; brief upstream
+interruptions are retried automatically. Apps connecting directly to the printer
+(including slicer previews) can still compete with Home Assistant for the stream.
+
 
 
 <div align="center">

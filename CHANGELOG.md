@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-09-27
+
+### Fixed
+
+- Share one on-demand camera connection across live previews and snapshots. Opening
+  a second Home Assistant tab no longer opens a competing MJPEG connection to the
+  printer. Keep only the latest frame, retry interrupted streams, and close the
+  reader when there are no viewers or the integration unloads. External apps that
+  connect directly to the printer are outside this sharing boundary.
+
 ## [1.6.0] - 2026-09-27
 
 This release lets you upload a sliced 3MF from the job card and print it. On the Creator 5 series, this is the new way to start a print from Home Assistant, with material matching. Update the integration and reload the dashboard page once. You don't need to change any settings.
