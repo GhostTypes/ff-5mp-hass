@@ -17,7 +17,7 @@
   "subtitle_other": "{model} · {count} recent files",
   "loading": "Loading files from the printer…",
   "no_files": "The printer reports no files. Send one from your slicer first.",
-  "local_jobs_unavailable_creator5": "Local job management is not available on this printer.",
+  "creator5_upload_only": "This printer can only print files you upload. Upload a sliced 3MF to match its materials and start it.",
   "tool_swatch_title": "Tool {tool}: {material}",
   "unknown_lower": "unknown",
   "tools_one": "{count} tool",
@@ -49,5 +49,14 @@
   "remove": "Remove",
   "editor_printer": "Printer",
   "editor_select": "Select a printer…",
-  "editor_title": "Card title (optional)"
+  "editor_title": "Card title (optional)",
+  "upload_3mf": "Upload 3MF",
+  "err_not_3mf": "Only sliced .3mf files can be uploaded.",
+  "err_too_large": "The file is larger than {size} MB.",
+  "err_upload": "The upload failed. Check the connection to Home Assistant and try again.",
+  "uploading_title": "Uploading {file}",
+  "upload_progress": "Uploading… {percent}%",
+  "upload_processing": "Reading the file…",
+  "sending": "Sending to the printer…",
+  "warn_model_mismatch": "This file was sliced for {model}, not for this printer. Check it before you start."
 }
